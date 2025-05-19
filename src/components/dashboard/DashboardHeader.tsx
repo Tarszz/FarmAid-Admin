@@ -10,14 +10,13 @@ interface DashboardHeaderProps {
   title: string;
   subtitle?: string;
   onNotificationClick?: () => void;
-  onMessageClick?: () => void;
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
   title, 
   subtitle,
   onNotificationClick,
-  onMessageClick
+
 }) => {
   return (
     <header className="bg-white border-b border-admin-border px-8 py-4">
@@ -45,9 +44,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               onClick={onNotificationClick}
             >
               <Bell className="h-5 w-5" />
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-admin-secondary">
-                3
-              </Badge>
+              
             </Button>
             
             

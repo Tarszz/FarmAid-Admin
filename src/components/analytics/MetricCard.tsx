@@ -34,19 +34,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center">
-          {change > 0 ? (
-            <ArrowUp className="mr-1 h-4 w-4 text-emerald-500" />
-          ) : (
-            <ArrowDown className="mr-1 h-4 w-4 text-rose-500" />
-          )}
-          <div className="text-xs font-medium text-admin-textSecondary">
-            <span className={change > 0 ? "text-emerald-500" : "text-rose-500"}>
-              {Math.abs(change)}%
-            </span>{" "}
-            from previous month
-          </div>
-        </div>
+       
       </CardContent>
     </Card>
   );
