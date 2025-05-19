@@ -1,39 +1,50 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Users, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
+import { db } from '../../../firebase'; // adjust as needed
 
-type Approval = {
-  id: number;
-  name: string;
-  type: string;
-  dateApplied: string;
+type User = {
+  id: string;
+  firstname: string;
+  lastname: string;
+  userType: string;
+  createdAt: Timestamp;
   status: string;
 };
 
-type PendingApprovalsProps = {
-  approvals: Approval[];
-};
+const PendingApprovals: React.FC = () => {
+  const [approvals, setApprovals] = useState<User[]>([]);
+  const navigate = useNavigate();
 
-const PendingApprovals: React.FC<PendingApprovalsProps> = ({ approvals }) => {
-  const { toast } = useToast();
+  useEffect(() => {
+    const fetchPendingUsers = async () => {
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('status', '==', 'Pending'));
+        const querySnapshot = await getDocs(q);
 
-  const handleApprove = (approval: Approval) => {
-    toast({
-      title: "User Approved",
-      description: `${approval.name} has been approved successfully.`,
-    });
-  };
+        const users: User[] = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            firstname: data.firstname,
+            lastname: data.lastname,
+            userType: data.userType,
+            createdAt: data.dateJoined,
+            status: data.status,
+          };
+        });
 
-  const handleReject = (approval: Approval) => {
-    toast({
-      title: "User Rejected",
-      description: `${approval.name} has been rejected.`,
-      variant: "destructive",
-    });
-  };
+        setApprovals(users);
+      } catch (error) {
+        console.error('Error fetching pending users:', error);
+      }
+    };
+
+    fetchPendingUsers();
+  }, []);
 
   return (
     <div className="admin-card animate-scale-in">
@@ -57,7 +68,7 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({ approvals }) => {
           </Link>
         </Button>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-admin-border">
           <thead>
@@ -70,43 +81,34 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({ approvals }) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-admin-border">
-            {approvals.map((approval) => (
-              <tr key={approval.id} className="hover:bg-admin-background/50 transition-colors">
+            {approvals.map((user) => (
+              <tr key={user.id} className="hover:bg-admin-background/50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-admin-text">{approval.name}</div>
+                  <div className="text-sm font-medium text-admin-text">{user.firstname} {user.lastname}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-admin-secondary/10 text-admin-secondary">
                     <Tag size={12} className="mr-1" />
-                    {approval.type}
+                    {user.userType}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-admin-textSecondary">{approval.dateApplied}</div>
+                  <div className="text-sm text-admin-textSecondary">
+                    {user.createdAt?.toDate().toLocaleDateString()}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    approval.status === 'pending' 
-                      ? 'bg-amber-100 text-amber-800' 
-                      : 'bg-indigo-100 text-indigo-800'
-                  }`}>
-                    {approval.status === 'pending' ? 'Pending' : 'Under Review'}
+                  <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                    Pending
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <Button
-                    className="text-admin-secondary hover:text-admin-primary transition-colors mr-2"
+                    className="text-admin-secondary hover:text-admin-primary transition-colors"
                     variant="ghost"
-                    onClick={() => handleApprove(approval)}
+                    onClick={() => navigate(`/users`)}
                   >
-                    Approve
-                  </Button>
-                  <Button
-                    className="text-admin-danger hover:text-admin-danger/80 transition-colors"
-                    variant="ghost"
-                    onClick={() => handleReject(approval)}
-                  >
-                    Reject
+                    Verify
                   </Button>
                 </td>
               </tr>
