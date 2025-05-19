@@ -1,114 +1,121 @@
+"use client";
 
-import React from 'react';
-import { Transaction, formatCurrency } from '@/types/transaction';
-import { Calendar, Image } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase"; // Your Firestore instance
+import { formatCurrency } from "@/types/transaction";
 
 interface TransactionDetailsProps {
-  transaction: Transaction;
+  transactionId: string;
+  buyerId?: string;
+  donorId?: string;
 }
 
-const TransactionDetails: React.FC<TransactionDetailsProps> = ({ transaction }) => {
+interface User {
+  firstname: string;
+  lastname: string;
+}
+
+interface TransactionData {
+  item: string;
+  quantity: number;
+  unit: string;
+  totalAmount: number;
+  status: string;
+  transactionType: string;
+  date: any; // Timestamp from Firestore
+  buyerId?: string;
+  donorId?: string;
+}
+
+const TransactionDetails: React.FC<TransactionDetailsProps> = ({
+  transactionId,
+  buyerId,
+  donorId,
+}) => {
+  const [transaction, setTransaction] = useState<TransactionData | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTransactionAndUser = async () => {
+      setLoading(true);
+      try {
+        // Fetch transaction document
+        const transactionDoc = await getDoc(doc(db, "transactions", transactionId));
+
+        if (!transactionDoc.exists()) {
+          console.error("Transaction not found");
+          setTransaction(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        const txnData = transactionDoc.data() as TransactionData;
+
+        setTransaction(txnData);
+
+        // Determine user ID (buyerId or donorId)
+        const userId = buyerId || donorId || txnData.buyerId || txnData.donorId;
+
+        if (!userId) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch user document from users collection
+        const userDoc = await getDoc(doc(db, "users", userId));
+
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as User;
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching transaction or user data:", error);
+        setTransaction(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactionAndUser();
+  }, [transactionId, buyerId, donorId]);
+
+  if (loading) {
+    return <p>Loading details...</p>;
+  }
+
+  if (!transaction) {
+    return <p>No details available for this transaction.</p>;
+  }
+
   return (
-    <div className="px-4 pb-4">
-      <Tabs defaultValue="details">
-        <TabsList className="mb-4">
-          <TabsTrigger value="details">Transaction Details</TabsTrigger>
-          <TabsTrigger value="delivery">Delivery Information</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="details">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-admin-textSecondary mb-1">Date</p>
-                  <p className="flex items-center text-sm">
-                    <Calendar className="h-4 w-4 mr-2 text-admin-secondary" />
-                    {transaction.date}
-                  </p>
-                </div>
-                
-                {transaction.transactionType === 'Donation' && transaction.recipientOrganization && (
-                  <div>
-                    <p className="text-sm font-medium text-admin-textSecondary mb-1">Recipient Organization</p>
-                    <p className="text-sm">{transaction.recipientOrganization}</p>
-                  </div>
-                )}
-                
-                {transaction.transactionType === 'Sold to Market' && transaction.marketName && (
-                  <div>
-                    <p className="text-sm font-medium text-admin-textSecondary mb-1">Market Name</p>
-                    <p className="text-sm">{transaction.marketName}</p>
-                  </div>
-                )}
-                
-                {transaction.priceBreakdown && (
-                  <div className="md:col-span-2">
-                    <p className="text-sm font-medium text-admin-textSecondary mb-2">Price Breakdown</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Base Price:</div>
-                      <div className="text-right">{formatCurrency(transaction.priceBreakdown.basePrice)}</div>
-                      <div>Taxes:</div>
-                      <div className="text-right">{formatCurrency(transaction.priceBreakdown.taxes)}</div>
-                      <div>Delivery Fee:</div>
-                      <div className="text-right">{formatCurrency(transaction.priceBreakdown.delivery)}</div>
-                      <div className="font-medium">Total:</div>
-                      <div className="text-right font-medium">{formatCurrency(transaction.priceBreakdown.total)}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="delivery">
-          <Card>
-            <CardContent className="pt-6">
-              {transaction.deliveryDetails ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-admin-textSecondary mb-1">Delivery Address</p>
-                    <p className="text-sm">{transaction.deliveryDetails.address}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-admin-textSecondary mb-1">Courier</p>
-                    <p className="text-sm">{transaction.deliveryDetails.courier}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-admin-textSecondary mb-1">Tracking Number</p>
-                    <p className="text-sm">{transaction.deliveryDetails.trackingNumber}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-admin-textSecondary mb-1">Estimated Delivery</p>
-                    <p className="text-sm">{transaction.deliveryDetails.estimatedDelivery}</p>
-                  </div>
-                  
-                  {transaction.proofOfDelivery && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm font-medium text-admin-textSecondary mb-2">Proof of Delivery</p>
-                      <div className="relative aspect-video w-full max-w-md rounded-md overflow-hidden bg-admin-background">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Image className="h-8 w-8 text-admin-textSecondary" />
-                        </div>
-                        <img 
-                          src={transaction.proofOfDelivery} 
-                          alt="Proof of delivery" 
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-admin-textSecondary">No delivery information available for this transaction.</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+    <div className="p-4 space-y-2">
+      <p><strong>Transaction ID:</strong> {transactionId}</p>
+      <p>
+        <strong>Buyer / Donor:</strong>{" "}
+        {user ? `${user.firstname} ${user.lastname}` : "N/A"}
+      </p>
+      <p><strong>Crop:</strong> {transaction.item || "N/A"}</p>
+      <p>
+        <strong>Quantity:</strong> {transaction.quantity ?? "N/A"} {transaction.unit || ""}
+      </p>
+      <p><strong>Amount:</strong> {formatCurrency(transaction.totalAmount)}</p>
+      <p><strong>Status:</strong> {transaction.status || "N/A"}</p>
+      <p><strong>Type:</strong> {transaction.transactionType || "N/A"}</p>
+      <p>
+        <strong>Date:</strong>{" "}
+        {transaction.date?.toDate
+          ? transaction.date.toDate().toLocaleString()
+          : transaction.date
+          ? new Date(transaction.date).toLocaleString()
+          : "N/A"}
+      </p>
     </div>
   );
 };

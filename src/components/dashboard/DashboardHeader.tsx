@@ -27,14 +27,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         </div>
         
         <div className="flex items-center space-x-4 mt-4 md:mt-0">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-admin-textSecondary h-4 w-4" />
-            <Input 
-              type="search" 
-              placeholder="Search..." 
-              className="pl-10 w-full bg-admin-background border-admin-border"
-            />
-          </div>
+          
           
           <div className="flex items-center space-x-3">
             <Button 

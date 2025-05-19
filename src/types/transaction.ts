@@ -1,30 +1,24 @@
+import { Timestamp } from "firebase/firestore";
 
-export type Transaction = {
+export interface Transaction {
   id: string;
-  farmerName: string;
-  buyerName: string;
-  crop: string;
-  quantity: string;
-  amount: number;
-  transactionType: 'Donation' | 'Sold to Market';
-  status: 'Pending' | 'Completed' | 'Cancelled';
-  date: string;
-  recipientOrganization?: string;
-  marketName?: string;
-  priceBreakdown?: {
-    basePrice: number;
-    taxes: number;
-    delivery: number;
-    total: number;
-  };
-  deliveryDetails?: {
-    address: string;
-    courier: string;
-    trackingNumber: string;
-    estimatedDelivery: string;
-  };
-  proofOfDelivery?: string;
-};
+  farmerId?: string;
+  buyerId?: string;
+  donorId?: string;
+  date?: Timestamp;       // Use Timestamp here if possible
+  name?: string;
+  items?: any[];
+  farmerName?: string;
+  buyerName?: string;
+  donorName?: string;
+  crop?: string;
+  quantity?: number;
+  totalAmount?: number;
+  transactionType?: string;
+  status?: string;
+  unit?: string;
+  item?: string;
+}
 
 export const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('en-PH', {
