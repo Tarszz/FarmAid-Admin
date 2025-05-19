@@ -3,41 +3,38 @@ import PageContainer from '@/components/dashboard/PageContainer';
 import { useFirestoreQuery } from '@/hooks/useFirestoreQuery';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { doc, updateDoc } from 'firebase/firestore'; // Add this import
-
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import { doc, updateDoc } from 'firebase/firestore';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { 
-  ChevronDown, 
-  Search, 
-  EyeIcon, 
-  BadgeCheck, 
-  Ban, 
-  Filter, 
-  Check, 
-  X
+import {
+  ChevronDown,
+  Search,
+  EyeIcon,
+  BadgeCheck,
+  Ban,
+  Filter,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { db } from '@/lib/firebase';
 import { Timestamp } from 'firebase/firestore';
@@ -45,14 +42,15 @@ import { Timestamp } from 'firebase/firestore';
 type User = {
   id: string;
   firstname: string;
+  lastname?: string;
   email: string;
   userType: 'Farmer' | 'Donor' | 'Market' | 'Organization';
   status: 'Verified' | 'Pending' | 'Disabled';
-  dateJoined: Timestamp; // Change to Timestamp type
-  location?: string;
-  phone?: string;
+  dateJoined: Timestamp;
+  address: string;
+  phoneNumber?: string;
   profileImage?: string;
-  documentsUrl?: string[];
+  certificateUrl?: string;
 };
 
 const Users = () => {
@@ -63,18 +61,17 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] = useState<'view' | 'verify' | 'disable'>('view');
-  
+
   const { toast } = useToast();
 
   const filteredUsers = users.filter((user: User) => {
-    // Add null checks for user properties
-    const matchesSearch = 
-      (user.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) || 
+    const matchesSearch =
+      (user.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
-    
+
     const matchesType = !filterType || user.userType === filterType;
     const matchesStatus = !filterStatus || user.status === filterStatus;
-    
+
     return matchesSearch && matchesType && matchesStatus;
   });
 
@@ -86,71 +83,42 @@ const Users = () => {
 
   const handleActionConfirm = async () => {
     if (!selectedUser) return;
-    
+
     try {
       if (dialogAction === 'verify') {
         await updateDoc(doc(db, 'users', selectedUser.id), {
-          status: 'Verified'
+          status: 'Verified',
         });
         toast({
-          title: "User Verified",
+          title: 'User Verified',
           description: `${selectedUser.firstname} has been successfully verified.`,
-          variant: "default",
         });
       } else if (dialogAction === 'disable') {
         await updateDoc(doc(db, 'users', selectedUser.id), {
-          status: 'Disabled'
+          status: 'Disabled',
         });
         toast({
-          title: "User Disabled",
+          title: 'User Disabled',
           description: `${selectedUser.firstname} has been disabled.`,
-          variant: "default",
         });
       }
     } catch (error) {
       toast({
-        title: "Action Failed",
-        description: "There was an error processing your request.",
-        variant: "destructive",
+        title: 'Action Failed',
+        description: 'There was an error processing your request.',
+        variant: 'destructive',
       });
     } finally {
       setDialogOpen(false);
     }
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'Verified': return 'success';
-      case 'Pending': return 'warning';
-      case 'Disabled': return 'destructive';
-      default: return 'default';
-    }
-  };
-
-  // Format the timestamp to a readable date
   const formatDate = (timestamp) => {
-    if (timestamp && timestamp.toDate) {
-        return timestamp.toDate().toLocaleString();
-    } else {
-        return 'Invalid date';  // or any fallback value
-    }
+    return timestamp?.toDate ? timestamp.toDate().toLocaleString() : 'Invalid date';
   };
 
-  // Get the current filter text for user type
-  const getUserTypeFilterText = () => {
-    if (filterType) {
-      return `User Type: ${filterType}`;
-    }
-    return 'User Type';
-  };
-
-  // Get the current filter text for status
-  const getStatusFilterText = () => {
-    if (filterStatus) {
-      return `Status: ${filterStatus}`;
-    }
-    return 'Status';
-  };
+  const getUserTypeFilterText = () => (filterType ? `User Type: ${filterType}` : 'User Type');
+  const getStatusFilterText = () => (filterStatus ? `Status: ${filterStatus}` : 'Status');
 
   return (
     <PageContainer title="Users" subtitle="Manage all system users" loading={loading}>
@@ -165,7 +133,7 @@ const Users = () => {
             className="pl-9 w-full"
           />
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -176,24 +144,14 @@ const Users = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setFilterType(null)}>
-                All Types
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Farmer')}>
-                Farmers
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Donor')}>
-                Donors
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Market')}>
-                Markets
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Organization')}>
-                Organizations
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType(null)}>All Types</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Farmer')}>Farmers</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Donor')}>Donors</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Market')}>Markets</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Organization')}>Organizations</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -203,36 +161,27 @@ const Users = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setFilterStatus(null)}>
-                All Statuses
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('Verified')}>
-                Verified
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('Pending')}>
-                Pending
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus('Disabled')}>
-                Disabled
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus(null)}>All Statuses</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus('Verified')}>Verified</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus('Pending')}>Pending</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterStatus('Disabled')}>Disabled</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-      
+
       <div className="rounded-md border">
         <Table>
-        <TableHeader>
-  <TableRow>
-    <TableHead className="text-left">User Name</TableHead>
-    <TableHead className="text-left">User Type</TableHead>
-    <TableHead className="text-left">Status</TableHead>
-    <TableHead className="text-left">Email</TableHead>
-    <TableHead className="text-left">Date Joined</TableHead>
-    <TableHead className="text-center">Actions</TableHead>
-  </TableRow>
-</TableHeader>
-
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-left">User Name</TableHead>
+              <TableHead className="text-left">User Type</TableHead>
+              <TableHead className="text-left">Status</TableHead>
+              <TableHead className="text-left">Email</TableHead>
+              <TableHead className="text-left">Date Joined</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
@@ -250,43 +199,30 @@ const Users = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                  <Badge
-  className={
-    user.status === 'Verified'
-      ? 'bg-green-100 text-green-800'
-      : user.status === 'Pending'
-      ? 'bg-white text-yellow-600 border border-yellow-300'
-      : user.status === 'Disabled'
-      ? 'bg-red-100 text-red-800'
-      : ''
-  }
->
-  {user.status || 'Unknown'}
-</Badge>
-
+                    <Badge
+                      className={
+                        user.status === 'Verified'
+                          ? 'bg-green-100 text-green-800'
+                          : user.status === 'Pending'
+                          ? 'bg-white text-yellow-600 border border-yellow-300'
+                          : user.status === 'Disabled'
+                          ? 'bg-red-100 text-red-800'
+                          : ''
+                      }
+                    >
+                      {user.status || 'Unknown'}
+                    </Badge>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{formatDate(user.dateJoined)}</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleActionClick(user, 'view')}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'view')}>
                       <EyeIcon className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleActionClick(user, 'verify')}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'verify')}>
                       <BadgeCheck className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleActionClick(user, 'disable')}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'disable')}>
                       <Ban className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -296,15 +232,31 @@ const Users = () => {
           </TableBody>
         </Table>
       </div>
-      
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{dialogAction === 'view' ? 'User Details' : 'Confirm Action'}</DialogTitle>
           </DialogHeader>
-          {dialogAction === 'view' ? (
-            <DialogDescription>
-              {/* User details content goes here */}
+          {dialogAction === 'view' && selectedUser ? (
+            <DialogDescription className="space-y-2 text-left">
+              <p><strong>First Name:</strong> {selectedUser.firstname || 'N/A'}</p>
+              <p><strong>Last Name:</strong> {selectedUser.lastname || 'N/A'}</p>
+              <p><strong>Email:</strong> {selectedUser.email}</p>
+              <p><strong>Address:</strong> {selectedUser.address|| 'N/A'}</p>
+              <p><strong>Phone Number:</strong> {selectedUser.phoneNumber || 'N/A'}</p>
+              <p><strong>User Type:</strong> {selectedUser.userType}</p>
+              <p><strong>Status:</strong> {selectedUser.status}</p>
+              {selectedUser.certificateUrl && (
+                <div className="mt-4">
+                  <p className="mb-1 font-semibold">Certificate:</p>
+                  <img
+                    src={selectedUser.certificateUrl}
+                    alt="User Certificate"
+                    className="rounded-md border max-h-64 w-auto"
+                  />
+                </div>
+              )}
             </DialogDescription>
           ) : (
             <DialogDescription>
@@ -315,9 +267,11 @@ const Users = () => {
             <Button onClick={() => setDialogOpen(false)} variant="outline">
               Cancel
             </Button>
-            <Button onClick={handleActionConfirm}>
-              Confirm
-            </Button>
+            {dialogAction !== 'view' && (
+              <Button onClick={handleActionConfirm}>
+                Confirm
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
