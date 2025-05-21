@@ -299,76 +299,7 @@ const Broadcasts = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Engagement</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span>Open Rate</span>
-                <span className="font-medium">78%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-admin-secondary h-2.5 rounded-full" style={{ width: '78%' }}></div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span>Response Rate</span>
-                <span className="font-medium">43%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-admin-secondary h-2.5 rounded-full" style={{ width: '43%' }}></div>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span>Action Completion</span>
-                <span className="font-medium">62%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div className="bg-admin-secondary h-2.5 rounded-full" style={{ width: '62%' }}></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Communication Tips</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              <li className="flex items-start">
-                <span className="text-admin-secondary mr-2">•</span>
-                <span>Keep messages clear and concise</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-admin-secondary mr-2">•</span>
-                <span>Include a clear call to action when needed</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-admin-secondary mr-2">•</span>
-                <span>Use a descriptive subject line</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-admin-secondary mr-2">•</span>
-                <span>Target specific user groups for better engagement</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-admin-secondary mr-2">•</span>
-                <span>Schedule important announcements during peak usage hours</span>
-              </li>
-            </ul>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full">View Best Practices</Button>
-          </CardFooter>
-        </Card>
-      </div>
     </PageContainer>
   );
 };
-
 export default Broadcasts;

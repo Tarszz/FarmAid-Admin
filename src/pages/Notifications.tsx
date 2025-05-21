@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/dashboard/PageContainer';
-import { useFirestoreQuery } from '@/hooks/useFirestoreQuery';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+} from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,43 +26,32 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, ChevronDown, Bell, MessageSquare, Truck } from 'lucide-react';
 
 type Notification = {
   id: string;
-  type: 'Donation' | 'Delivery' | 'Dispute' | 'System';
+  type: 'Donation' | 'Delivery' | 'Dispute' | 'System' | string;
   message: string;
   date: any;
-  read: boolean;
-  details: string;
+  read?: boolean;
   buyerId?: string;
-  userLink?: {
-    id: string;
-    name: string;
-    type: string;
-  };
-  transactionLink?: {
-    id: string;
-    type: string;
-  };
-  formattedDate?: string;
-};
-
-type TransactionDetails = {
-  location?: string;
-  name?: string;
+  transactionType?: string;
+  productId?: string;
+  category?: string;
   quantity?: number;
   quantityUnit?: string;
-  price?: number;
-  transactionType?: string;
-  organizationName?: string;
   imageUrl?: string;
+  organizationName?: string;
+  transactionNumber?: string;
+};
+
+type User = {
+  firstname: string;
+  lastname: string;
 };
 
 const NotificationIcon = ({ type }: { type: string }) => {
@@ -75,70 +68,84 @@ const NotificationIcon = ({ type }: { type: string }) => {
 };
 
 const Notifications = () => {
-  const { data: notifications = [], loading } = useFirestoreQuery('notifications');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [users, setUsers] = useState<Record<string, User>>({});
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
-  const [transactionDetails, setTransactionDetails] = useState<TransactionDetails | null>(null);
 
   useEffect(() => {
-    const fetchBuyerNames = async () => {
-      const buyerIds = Array.from(
-        new Set(notifications.map((n: Notification) => n.buyerId).filter(Boolean))
-      );
+    const fetchNotifications = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'notifications'));
+        const notifs: Notification[] = [];
+        const buyerIds: Set<string> = new Set();
 
-      const names: Record<string, string> = {};
-      await Promise.all(
-        buyerIds.map(async (id) => {
-          const userDoc = await getDoc(doc(db, 'users', id));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
-            names[id] = `${data.firstname} ${data.lastname}`;
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (!data) return;
+
+          const notif: Notification = {
+            id: docSnap.id,
+            buyerId: data.buyerId || '',
+            transactionType: data.transactionType || '',
+            message: data.message || '',
+            date: data.date || null,
+            productId: data.productId || '',
+            category: data.category || '',
+            quantity: data.quantity || 0,
+            quantityUnit: data.quantityUnit || '',
+            imageUrl: data.imageUrl || '',
+            organizationName: data.organizationName || '',
+            transactionNumber: data.transactionNumber || '',
+            type: data.type || 'System',
+            read: data.read || false,
+          };
+
+          notifs.push(notif);
+
+          if (notif.buyerId) {
+            buyerIds.add(notif.buyerId);
           }
-        })
-      );
-      setBuyerNames(names);
-    };
+        });
 
-    if (notifications.length > 0) fetchBuyerNames();
-  }, [notifications]);
+        const usersMap: Record<string, User> = {};
+        await Promise.all(
+          Array.from(buyerIds).map(async (buyerId) => {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', buyerId));
+              if (userDoc.exists()) {
+                const userData = userDoc.data() as User;
+                usersMap[buyerId] = {
+                  firstname: userData.firstname,
+                  lastname: userData.lastname,
+                };
+              }
+            } catch (err) {
+              console.error(`Failed to fetch user for buyerId ${buyerId}`, err);
+            }
+          })
+        );
 
-  useEffect(() => {
-    const fetchTransactionDetails = async () => {
-      if (selectedNotification?.transactionLink?.id) {
-        const transactionDoc = await getDoc(doc(db, 'transactions', selectedNotification.transactionLink.id));
-        if (transactionDoc.exists()) {
-          const data = transactionDoc.data();
-          setTransactionDetails({
-            location: data.location,
-            name: data.name,
-            quantity: data.quantity,
-            quantityUnit: data.quantityUnit,
-            price: data.price,
-            transactionType: data.transactionType,
-            organizationName: data.organizationName,
-            imageUrl: data.imageUrl,
-          });
-        } else {
-          setTransactionDetails(null);
-        }
-      } else {
-        setTransactionDetails(null);
+        setUsers(usersMap);
+        setNotifications(notifs);
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    if (detailsOpen) {
-      fetchTransactionDetails();
-    }
-  }, [selectedNotification, detailsOpen]);
+    fetchNotifications();
+  }, []);
 
-  const filteredNotifications = notifications
-    .map((notification: Notification) => {
+  // Prepare notifications for display: replace 'you' and 'your' with buyer full names
+  const displayedNotifications = notifications
+    .map((notification) => {
       let updatedMessage = notification.message;
-      if (notification.buyerId && buyerNames[notification.buyerId]) {
-        const fullName = buyerNames[notification.buyerId];
+      if (notification.buyerId && users[notification.buyerId]) {
+        const fullName = `${users[notification.buyerId].firstname} ${users[notification.buyerId].lastname}`;
         updatedMessage = updatedMessage
           .replace(/\byour\b/gi, `${fullName}'s`)
           .replace(/\byou\b/gi, fullName);
@@ -151,16 +158,11 @@ const Notifications = () => {
           : 'Invalid date',
       };
     })
-    .filter((notification: Notification) => {
+    .filter((notification) => {
       const matchesSearch = notification.message.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = !filterType || notification.type === filterType;
       return matchesSearch && matchesType;
     });
-
-  const viewDetails = (notification: Notification) => {
-    setSelectedNotification(notification);
-    setDetailsOpen(true);
-  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -176,9 +178,6 @@ const Notifications = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
-  // Improved console log to show full object contents:
-  console.log('Selected Notification:', JSON.stringify(selectedNotification, null, 2));
 
   return (
     <PageContainer title="Notifications" subtitle="Manage system notifications and alerts" loading={loading}>
@@ -220,46 +219,96 @@ const Notifications = () => {
               <TableHead>Type</TableHead>
               <TableHead>Message</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
+              
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredNotifications.length === 0 ? (
+            {displayedNotifications.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-admin-textSecondary">
                   {loading ? 'Loading notifications...' : 'No notifications found matching the criteria.'}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredNotifications.map((notification: Notification) => (
+              displayedNotifications.map((notification) => (
                 <TableRow key={notification.id} className={notification.read ? '' : 'bg-admin-secondary/5'}>
                   <TableCell>
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(notification.type)}`}>
+                    <div
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(
+                        notification.type
+                      )}`}
+                    >
                       <NotificationIcon type={notification.type} />
                       <span className="ml-1.5">{notification.type}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="max-w-sm">
-                    <p className="truncate font-medium">{notification.message}</p>
-                  </TableCell>
+                  <TableCell>{notification.message}</TableCell>
                   <TableCell>{notification.formattedDate}</TableCell>
-                  <TableCell>
-                    {notification.read ? (
-                      <Badge variant="outline">Read</Badge>
-                    ) : (
-                      <Badge>Unread</Badge>
-                    )}
-                  </TableCell>
+                  
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => viewDetails(notification)}
-                      className="h-8"
+                    <Dialog
+                      open={selectedNotification?.id === notification.id}
+                      onOpenChange={(open) => {
+                        if (!open) setSelectedNotification(null);
+                      }}
                     >
-                      View Details
-                    </Button>
+                      <DialogTrigger asChild>
+                        <Button
+                          onClick={() => setSelectedNotification(notification)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          View Details
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md">
+                        <DialogTitle>Transaction Details</DialogTitle>
+                        {selectedNotification && selectedNotification.id === notification.id && (
+                          <div className="space-y-4 mt-4 text-sm">
+                            <p>
+                              <strong>Buyer Name:</strong>{' '}
+                              {selectedNotification.buyerId && users[selectedNotification.buyerId]
+                                ? `${users[selectedNotification.buyerId].firstname} ${users[selectedNotification.buyerId].lastname}`
+                                : 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Transaction Type:</strong> {selectedNotification.transactionType || selectedNotification.type}
+                            </p>
+                            <p>
+                              <strong>Product ID:</strong> {selectedNotification.productId || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Category:</strong> {selectedNotification.category || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Quantity:</strong>{' '}
+                              {selectedNotification.quantity
+                                ? `${selectedNotification.quantity} ${selectedNotification.quantityUnit || ''}`
+                                : 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Organization Name:</strong>{' '}
+                              {selectedNotification.organizationName || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Transaction Number:</strong>{' '}
+                              {selectedNotification.transactionNumber || 'N/A'}
+                            </p>
+                            {selectedNotification.imageUrl && (
+                              <div>
+                                <strong>Image:</strong>
+                                <img
+                                  src={selectedNotification.imageUrl}
+                                  alt="Notification related"
+                                  className="mt-2 max-w-full rounded-md border"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </TableCell>
                 </TableRow>
               ))
@@ -267,62 +316,6 @@ const Notifications = () => {
           </TableBody>
         </Table>
       </div>
-
-      {selectedNotification && (
-        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Notification Details</DialogTitle>
-              <DialogDescription>
-                <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${getTypeColor(selectedNotification.type)}`}>
-                  <NotificationIcon type={selectedNotification.type} />
-                  <span className="ml-1.5">{selectedNotification.type} Notification</span>
-                </div>
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="mt-4 space-y-4">
-              <div>
-                <p><strong>Message:</strong></p>
-                <p>{selectedNotification.message}</p>
-              </div>
-              <div>
-                <p><strong>Date:</strong></p>
-                <p>{selectedNotification.formattedDate}</p>
-              </div>
-              <div>
-                <p><strong>Details:</strong></p>
-                <p>{selectedNotification.details ? selectedNotification.details : "No details available."}</p>
-              </div>
-
-              {transactionDetails ? (
-                <div className="mt-4 border p-4 rounded-md bg-gray-50">
-                  <h3 className="font-semibold mb-2">Transaction Details</h3>
-                  {transactionDetails.imageUrl && (
-                    <img
-                      src={transactionDetails.imageUrl}
-                      alt={transactionDetails.name}
-                      className="mb-2 max-h-40 object-contain"
-                    />
-                  )}
-                  <p><strong>Name:</strong> {transactionDetails.name}</p>
-                  <p><strong>Quantity:</strong> {transactionDetails.quantity} {transactionDetails.quantityUnit}</p>
-                  <p><strong>Price:</strong> ₱{transactionDetails.price}</p>
-                  <p><strong>Location:</strong> {transactionDetails.location}</p>
-                  <p><strong>Transaction Type:</strong> {transactionDetails.transactionType}</p>
-                  <p><strong>Organization:</strong> {transactionDetails.organizationName}</p>
-                </div>
-              ) : (
-                <p>No transaction details available.</p>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button onClick={() => setDetailsOpen(false)}>Close</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </PageContainer>
   );
 };
