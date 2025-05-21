@@ -1,12 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/dashboard/PageContainer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -23,59 +20,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Send, Users, Calendar, Filter } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-
-// Sample announcement data
-const announcements = [
-  {
-    id: 1,
-    title: 'System Maintenance',
-    message: 'The system will be down for maintenance on Saturday, August 10th from 2:00 AM to 6:00 AM.',
-    audience: 'All Users',
-    dateCreated: '2023-08-05',
-    status: 'Scheduled',
-    sendDate: '2023-08-09'
-  },
-  {
-    id: 2,
-    title: 'New Crop Pricing Policy',
-    message: 'We are updating our crop pricing policy to better support local farmers. Please check the updated guidelines.',
-    audience: 'Farmers, Buyers',
-    dateCreated: '2023-08-03',
-    status: 'Sent',
-    sendDate: '2023-08-03'
-  },
-  {
-    id: 3,
-    title: 'Food Security Initiative',
-    message: 'New partnership with the Department of Agriculture to enhance food security across rural communities.',
-    audience: 'Organizations',
-    dateCreated: '2023-08-01',
-    status: 'Sent',
-    sendDate: '2023-08-01'
-  },
-  {
-    id: 4,
-    title: 'Donation Drive for Typhoon Victims',
-    message: 'We are coordinating a donation drive for families affected by the recent typhoon. Please consider donating crops.',
-    audience: 'All Users',
-    dateCreated: '2023-07-28',
-    status: 'Sent',
-    sendDate: '2023-07-28'
-  },
-];
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  addDoc,
+  Timestamp,
+  getDocs,
+  query,
+  orderBy
+} from 'firebase/firestore';
 
 const audienceOptions = [
   { id: "all-users", label: "All Users" },
   { id: "farmers", label: "Farmers" },
   { id: "organizations", label: "Organizations" },
-  { id: "buyers", label: "Buyers" },
-  { id: "administrators", label: "Administrators" },
+  { id: "markets", label: "Markets" },
 ];
 
 const Broadcasts = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [viewedAnnouncement, setViewedAnnouncement] = useState<any | null>(null);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: '',
     message: '',
@@ -85,66 +53,145 @@ const Broadcasts = () => {
   });
   const { toast } = useToast();
 
-  const handleCreateAnnouncement = () => {
-    // Here you would typically call an API to create the announcement
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      const q = query(collection(db, 'announcements'), orderBy('date', 'desc'));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAnnouncements(data);
+    };
+    fetchAnnouncements();
+  }, []);
+
+  const handleCreateAnnouncement = async () => {
+    if (!newAnnouncement.title.trim()) {
+      toast({
+        title: "Title required",
+        description: "Please enter a title for the announcement.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (!newAnnouncement.message.trim()) {
+      toast({
+        title: "Message required",
+        description: "Please enter a message for the announcement.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (!Object.values(newAnnouncement.audienceTargets).some(Boolean)) {
+      toast({
+        title: "Audience required",
+        description: "Please select at least one target audience.",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (!newAnnouncement.sendNow && !newAnnouncement.sendDate) {
+      toast({
+        title: "Send date required",
+        description: "Please select a send date for scheduled announcements.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const selectedAudiences = Object.entries(newAnnouncement.audienceTargets)
       .filter(([_, isSelected]) => isSelected)
-      .map(([id, _]) => audienceOptions.find(opt => opt.id === id)?.label)
+      .map(([id]) => audienceOptions.find(opt => opt.id === id)?.label)
       .filter(Boolean)
       .join(", ");
 
-    toast({
-      title: "Announcement created",
-      description: newAnnouncement.sendNow 
-        ? `Your announcement has been sent to ${selectedAudiences}.` 
-        : "Your announcement has been scheduled for sending.",
-    });
-    
-    setIsCreateDialogOpen(false);
-    setNewAnnouncement({
-      title: '',
-      message: '',
-      audienceTargets: { "all-users": true },
-      sendNow: true,
-      sendDate: ''
-    });
-  };
-
-  const getStatusBadge = (status: string) => {
-    if (status === 'Sent') {
-      return <Badge className="bg-emerald-100 text-emerald-800">Sent</Badge>;
-    } else if (status === 'Scheduled') {
-      return <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>;
+    const createdAt = Timestamp.now();
+    let scheduledTimestamp;
+    if (newAnnouncement.sendNow) {
+      scheduledTimestamp = createdAt;
+    } else {
+      scheduledTimestamp = Timestamp.fromDate(new Date(newAnnouncement.sendDate));
+      if (scheduledTimestamp.seconds < createdAt.seconds) {
+        toast({
+          title: "Invalid send date",
+          description: "Scheduled send date must be in the future.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
-    return <Badge>{status}</Badge>;
+
+    const announcementData = {
+      title: newAnnouncement.title,
+      message: newAnnouncement.message,
+      audience: selectedAudiences,
+      status: newAnnouncement.sendNow ? 'Sent' : 'Scheduled',
+      date: createdAt,
+      dateSent: scheduledTimestamp,
+    };
+
+    try {
+      await addDoc(collection(db, 'announcements'), announcementData);
+
+      toast({
+        title: "Announcement created",
+        description: newAnnouncement.sendNow
+          ? `Your announcement has been sent to ${selectedAudiences}.`
+          : `Your announcement has been scheduled for ${newAnnouncement.sendDate}.`,
+      });
+
+      setAnnouncements(prev => [
+        { id: 'temp-id', ...announcementData }, // Add temporarily for UI update
+        ...prev,
+      ]);
+
+      setNewAnnouncement({
+        title: '',
+        message: '',
+        audienceTargets: { "all-users": true },
+        sendNow: true,
+        sendDate: ''
+      });
+      setIsCreateDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create announcement. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAudienceChange = (audienceId: string, checked: boolean) => {
-    setNewAnnouncement({
-      ...newAnnouncement,
+    setNewAnnouncement(prev => ({
+      ...prev,
       audienceTargets: {
-        ...newAnnouncement.audienceTargets,
+        ...prev.audienceTargets,
         [audienceId]: checked,
-        // If "All Users" is selected, deselect others. If others are selected, deselect "All Users"
-        ...(audienceId === "all-users" && checked 
-            ? audienceOptions.filter(opt => opt.id !== "all-users").reduce((acc, opt) => ({ ...acc, [opt.id]: false }), {})
-            : audienceId !== "all-users" && checked 
-              ? { "all-users": false }
-              : {}
+        ...(audienceId === "all-users" && checked
+          ? audienceOptions.filter(opt => opt.id !== "all-users").reduce((acc, opt) => ({ ...acc, [opt.id]: false }), {})
+          : audienceId !== "all-users" && checked
+            ? { "all-users": false }
+            : {}
         )
       }
-    });
+    }));
   };
 
-  // Get a string representation of selected audience for display
+  const getStatusBadge = (status: string) => {
+    if (status === 'Sent') return <Badge className="bg-emerald-100 text-emerald-800">Sent</Badge>;
+    if (status === 'Scheduled') return <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>;
+    return <Badge>{status}</Badge>;
+  };
+
   const getSelectedAudienceText = () => {
-    const selectedAudiences = Object.entries(newAnnouncement.audienceTargets)
+    const selected = Object.entries(newAnnouncement.audienceTargets)
       .filter(([_, isSelected]) => isSelected)
-      .map(([id, _]) => audienceOptions.find(opt => opt.id === id)?.label);
-    
-    if (selectedAudiences.length === 0) return "No audience selected";
-    if (selectedAudiences.includes("All Users")) return "All Users";
-    return selectedAudiences.join(", ");
+      .map(([id]) => audienceOptions.find(opt => opt.id === id)?.label);
+
+    if (selected.includes("All Users")) return "All Users";
+    return selected.length > 0 ? selected.join(", ") : "No audience selected";
   };
 
   return (
@@ -155,7 +202,7 @@ const Broadcasts = () => {
           Create Announcement
         </Button>
       </div>
-      
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -173,11 +220,18 @@ const Broadcasts = () => {
               <TableRow key={announcement.id}>
                 <TableCell className="font-medium">{announcement.title}</TableCell>
                 <TableCell>{announcement.audience}</TableCell>
-                <TableCell>{announcement.dateCreated}</TableCell>
+                <TableCell>{announcement.date?.toDate?.()?.toLocaleDateString()}</TableCell>
                 <TableCell>{getStatusBadge(announcement.status)}</TableCell>
-                <TableCell>{announcement.sendDate}</TableCell>
+                <TableCell>{announcement.dateSent?.toDate?.()?.toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setViewedAnnouncement(announcement);
+                      setIsViewDialogOpen(true);
+                    }}
+                  >
                     View
                   </Button>
                 </TableCell>
@@ -186,120 +240,138 @@ const Broadcasts = () => {
           </TableBody>
         </Table>
       </div>
-      
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+
+      {/* View Announcement Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Announcement</DialogTitle>
+            <DialogTitle>{viewedAnnouncement?.title}</DialogTitle>
             <DialogDescription>
-              Send notifications and important updates to users of the platform.
+              <p><strong>Audience:</strong> {viewedAnnouncement?.audience}</p>
+              <p><strong>Status:</strong> {viewedAnnouncement?.status}</p>
+              <p><strong>Created:</strong> {viewedAnnouncement?.date?.toDate?.()?.toLocaleString()}</p>
+              <p><strong>Send Date:</strong> {viewedAnnouncement?.dateSent?.toDate?.()?.toLocaleString()}</p>
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                Announcement Title
-              </label>
-              <Input
-                id="title"
-                placeholder="Enter a clear and concise title"
-                value={newAnnouncement.title}
-                onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="message" className="text-sm font-medium">
-                Message
-              </label>
-              <Textarea
-                id="message"
-                placeholder="Write your announcement message here..."
-                rows={5}
-                value={newAnnouncement.message}
-                onChange={(e) => setNewAnnouncement({...newAnnouncement, message: e.target.value})}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Target Audience
-              </label>
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                {audienceOptions.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`audience-${option.id}`} 
-                      checked={newAnnouncement.audienceTargets[option.id] || false}
-                      onCheckedChange={(checked) => handleAudienceChange(option.id, checked === true)}
-                    />
-                    <label 
-                      htmlFor={`audience-${option.id}`} 
-                      className="text-sm cursor-pointer"
-                    >
-                      {option.label}
-                    </label>
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-sm text-admin-textSecondary mt-3">
-                <Users className="inline h-3 w-3 mr-1" />
-                Selected audience: {getSelectedAudienceText()}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Sending Options
-              </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    checked={newAnnouncement.sendNow}
-                    onChange={() => setNewAnnouncement({...newAnnouncement, sendNow: true})}
-                    className="accent-admin-primary h-4 w-4"
-                  />
-                  <span>Send Immediately</span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    checked={!newAnnouncement.sendNow}
-                    onChange={() => setNewAnnouncement({...newAnnouncement, sendNow: false})}
-                    className="accent-admin-primary h-4 w-4"
-                  />
-                  <span>Schedule for Later</span>
-                </label>
-              </div>
-              
-              {!newAnnouncement.sendNow && (
-                <div className="mt-2">
-                  <Input
-                    type="date"
-                    value={newAnnouncement.sendDate}
-                    onChange={(e) => setNewAnnouncement({...newAnnouncement, sendDate: e.target.value})}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="mt-1"
-                  />
-                </div>
-              )}
-            </div>
+          <div className="mt-4 whitespace-pre-wrap">
+            {viewedAnnouncement?.message}
           </div>
-          
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Announcement Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Announcement</DialogTitle>
+            <DialogDescription>
+              Fill out the announcement details below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div>
+              <label className="text-sm font-medium">Title</label>
+              <Input
+                value={newAnnouncement.title}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })}
+                placeholder="Enter announcement title"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Message</label>
+              <Textarea
+                value={newAnnouncement.message}
+                onChange={(e) => setNewAnnouncement({ ...newAnnouncement, message: e.target.value })}
+                placeholder="Enter your message here..."
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Target Audience</label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {/* Replace buyers checkbox with markets */}
+{audienceOptions.map((option) => (
+  <label key={option.id} className="flex items-center gap-2 text-sm">
+    <input
+      type="checkbox"
+      checked={newAnnouncement.audienceTargets[option.id] || false}
+      onChange={(e) =>
+        handleAudienceChange(option.id, e.target.checked)
+      }
+    />
+    {option.label}
+  </label>
+))}
+
+              </div>
+              <p className="text-xs mt-1 text-muted-foreground">Selected: {getSelectedAudienceText()}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Send Options</label>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="sendOption"
+                    value="now"
+                    checked={newAnnouncement.sendNow}
+                    onChange={() =>
+                      setNewAnnouncement((prev) => ({
+                        ...prev,
+                        sendNow: true,
+                        sendDate: '',
+                      }))
+                    }
+                  />
+                  Send now
+                </label>
+
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="sendOption"
+                    value="schedule"
+                    checked={!newAnnouncement.sendNow}
+                    onChange={() =>
+                      setNewAnnouncement((prev) => ({
+                        ...prev,
+                        sendNow: false,
+                      }))
+                    }
+                  />
+                  Schedule for later
+                </label>
+              </div>
+            </div>
+
+            {!newAnnouncement.sendNow && (
+              <div>
+                <label className="text-sm font-medium">Send Date</label>
+                <Input
+                  type="datetime-local"
+                  value={newAnnouncement.sendDate}
+                  onChange={(e) =>
+                    setNewAnnouncement((prev) => ({
+                      ...prev,
+                      sendDate: e.target.value,
+                    }))
+                  }
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              </div>
+            )}
+          </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateAnnouncement} disabled={!newAnnouncement.title || !newAnnouncement.message}>
-              {newAnnouncement.sendNow ? 'Send Now' : 'Schedule'}
-            </Button>
+            <Button onClick={handleCreateAnnouncement}>Create Announcement</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageContainer>
   );
 };
+
 export default Broadcasts;

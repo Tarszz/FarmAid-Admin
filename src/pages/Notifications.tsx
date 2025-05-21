@@ -192,7 +192,7 @@ const Notifications = () => {
             className="pl-9 w-full"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/*<div className="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -209,7 +209,7 @@ const Notifications = () => {
               <DropdownMenuItem onClick={() => setFilterType('System')}>System</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+        </div>*/}
       </div>
 
       <div className="rounded-md border">
