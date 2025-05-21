@@ -1,7 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/dashboard/PageContainer';
 import { useFirestoreQuery } from '@/hooks/useFirestoreQuery';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -27,15 +28,16 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, ChevronDown, ExternalLink, Bell, MessageSquare, Truck } from 'lucide-react';
+import { Search, Filter, ChevronDown, Bell, MessageSquare, Truck } from 'lucide-react';
 
 type Notification = {
   id: string;
   type: 'Donation' | 'Delivery' | 'Dispute' | 'System';
   message: string;
-  date: string;
+  date: any;
   read: boolean;
   details: string;
+  buyerId?: string;
   userLink?: {
     id: string;
     name: string;
@@ -45,6 +47,18 @@ type Notification = {
     id: string;
     type: string;
   };
+  formattedDate?: string;
+};
+
+type TransactionDetails = {
+  location?: string;
+  name?: string;
+  quantity?: number;
+  quantityUnit?: string;
+  price?: number;
+  transactionType?: string;
+  organizationName?: string;
+  imageUrl?: string;
 };
 
 const NotificationIcon = ({ type }: { type: string }) => {
@@ -61,18 +75,87 @@ const NotificationIcon = ({ type }: { type: string }) => {
 };
 
 const Notifications = () => {
-  const { data: notifications, loading } = useFirestoreQuery('notifications');
+  const { data: notifications = [], loading } = useFirestoreQuery('notifications');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [buyerNames, setBuyerNames] = useState<Record<string, string>>({});
+  const [transactionDetails, setTransactionDetails] = useState<TransactionDetails | null>(null);
 
-  const filteredNotifications = notifications.filter((notification: Notification) => {
-    const matchesSearch = notification.message.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = !filterType || notification.type === filterType;
-    
-    return matchesSearch && matchesType;
-  });
+  useEffect(() => {
+    const fetchBuyerNames = async () => {
+      const buyerIds = Array.from(
+        new Set(notifications.map((n: Notification) => n.buyerId).filter(Boolean))
+      );
+
+      const names: Record<string, string> = {};
+      await Promise.all(
+        buyerIds.map(async (id) => {
+          const userDoc = await getDoc(doc(db, 'users', id));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            names[id] = `${data.firstname} ${data.lastname}`;
+          }
+        })
+      );
+      setBuyerNames(names);
+    };
+
+    if (notifications.length > 0) fetchBuyerNames();
+  }, [notifications]);
+
+  useEffect(() => {
+    const fetchTransactionDetails = async () => {
+      if (selectedNotification?.transactionLink?.id) {
+        const transactionDoc = await getDoc(doc(db, 'transactions', selectedNotification.transactionLink.id));
+        if (transactionDoc.exists()) {
+          const data = transactionDoc.data();
+          setTransactionDetails({
+            location: data.location,
+            name: data.name,
+            quantity: data.quantity,
+            quantityUnit: data.quantityUnit,
+            price: data.price,
+            transactionType: data.transactionType,
+            organizationName: data.organizationName,
+            imageUrl: data.imageUrl,
+          });
+        } else {
+          setTransactionDetails(null);
+        }
+      } else {
+        setTransactionDetails(null);
+      }
+    };
+
+    if (detailsOpen) {
+      fetchTransactionDetails();
+    }
+  }, [selectedNotification, detailsOpen]);
+
+  const filteredNotifications = notifications
+    .map((notification: Notification) => {
+      let updatedMessage = notification.message;
+      if (notification.buyerId && buyerNames[notification.buyerId]) {
+        const fullName = buyerNames[notification.buyerId];
+        updatedMessage = updatedMessage
+          .replace(/\byour\b/gi, `${fullName}'s`)
+          .replace(/\byou\b/gi, fullName);
+      }
+      return {
+        ...notification,
+        message: updatedMessage,
+        formattedDate: notification.date?.seconds
+          ? new Date(notification.date.seconds * 1000).toLocaleString()
+          : 'Invalid date',
+      };
+    })
+    .filter((notification: Notification) => {
+      const matchesSearch = notification.message.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = !filterType || notification.type === filterType;
+      return matchesSearch && matchesType;
+    });
 
   const viewDetails = (notification: Notification) => {
     setSelectedNotification(notification);
@@ -94,6 +177,9 @@ const Notifications = () => {
     }
   };
 
+  // Improved console log to show full object contents:
+  console.log('Selected Notification:', JSON.stringify(selectedNotification, null, 2));
+
   return (
     <PageContainer title="Notifications" subtitle="Manage system notifications and alerts" loading={loading}>
       <div className="flex flex-col md:flex-row gap-4 mb-6 items-start md:items-center justify-between">
@@ -107,7 +193,6 @@ const Notifications = () => {
             className="pl-9 w-full"
           />
         </div>
-        
         <div className="flex flex-wrap gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -118,26 +203,16 @@ const Notifications = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setFilterType(null)}>
-                All Types
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Donation')}>
-                Donation
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Delivery')}>
-                Delivery
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Dispute')}>
-                Dispute
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('System')}>
-                System
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType(null)}>All Types</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Donation')}>Donation</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Delivery')}>Delivery</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Dispute')}>Dispute</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('System')}>System</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
-      
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -168,7 +243,7 @@ const Notifications = () => {
                   <TableCell className="max-w-sm">
                     <p className="truncate font-medium">{notification.message}</p>
                   </TableCell>
-                  <TableCell>{notification.date}</TableCell>
+                  <TableCell>{notification.formattedDate}</TableCell>
                   <TableCell>
                     {notification.read ? (
                       <Badge variant="outline">Read</Badge>
@@ -192,7 +267,7 @@ const Notifications = () => {
           </TableBody>
         </Table>
       </div>
-      
+
       {selectedNotification && (
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
           <DialogContent>
@@ -205,52 +280,45 @@ const Notifications = () => {
                 </div>
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="py-4">
-              <h3 className="text-lg font-medium mb-2">{selectedNotification.message}</h3>
-              <p className="text-admin-textSecondary text-sm mb-4">{selectedNotification.date}</p>
-              
-              <div className="border-l-2 border-admin-secondary/20 pl-4 py-1 mb-4">
-                <p className="text-admin-textSecondary">
-                  {selectedNotification.details}
-                </p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <p><strong>Message:</strong></p>
+                <p>{selectedNotification.message}</p>
               </div>
-              
-              <div className="space-y-3">
-                {selectedNotification.userLink && (
-                  <div className="flex items-center justify-between border p-3 rounded-md">
-                    <div>
-                      <p className="text-sm font-medium">Related User</p>
-                      <p className="text-sm text-admin-textSecondary">
-                        {selectedNotification.userLink.name} ({selectedNotification.userLink.type})
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm" className="h-8">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      View User
-                    </Button>
-                  </div>
-                )}
-                
-                {selectedNotification.transactionLink && (
-                  <div className="flex items-center justify-between border p-3 rounded-md">
-                    <div>
-                      <p className="text-sm font-medium">Related Transaction</p>
-                      <p className="text-sm text-admin-textSecondary">
-                        {selectedNotification.transactionLink.id} ({selectedNotification.transactionLink.type})
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm" className="h-8">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      View Transaction
-                    </Button>
-                  </div>
-                )}
+              <div>
+                <p><strong>Date:</strong></p>
+                <p>{selectedNotification.formattedDate}</p>
               </div>
+              <div>
+                <p><strong>Details:</strong></p>
+                <p>{selectedNotification.details ? selectedNotification.details : "No details available."}</p>
+              </div>
+
+              {transactionDetails ? (
+                <div className="mt-4 border p-4 rounded-md bg-gray-50">
+                  <h3 className="font-semibold mb-2">Transaction Details</h3>
+                  {transactionDetails.imageUrl && (
+                    <img
+                      src={transactionDetails.imageUrl}
+                      alt={transactionDetails.name}
+                      className="mb-2 max-h-40 object-contain"
+                    />
+                  )}
+                  <p><strong>Name:</strong> {transactionDetails.name}</p>
+                  <p><strong>Quantity:</strong> {transactionDetails.quantity} {transactionDetails.quantityUnit}</p>
+                  <p><strong>Price:</strong> ₱{transactionDetails.price}</p>
+                  <p><strong>Location:</strong> {transactionDetails.location}</p>
+                  <p><strong>Transaction Type:</strong> {transactionDetails.transactionType}</p>
+                  <p><strong>Organization:</strong> {transactionDetails.organizationName}</p>
+                </div>
+              ) : (
+                <p>No transaction details available.</p>
+              )}
             </div>
-            
+
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDetailsOpen(false)}>Close</Button>
+              <Button onClick={() => setDetailsOpen(false)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
