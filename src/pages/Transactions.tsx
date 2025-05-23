@@ -27,18 +27,26 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Link } from 'react-router-dom';
 
+type Item = {
+  name: string;
+  weight: number;
+  unit: string;
+  sellerId?: string;
+  price: number;
+};
 
 type Transaction = {
   id: string;
   buyerDonorName: string;
-  sellerNames: { name: string; id: string }[];
   farmerName: string;
-  crops: string[];
-  weight: number;
-  unit: string;
-  amount: number;
+  items: {
+    name: string;
+    weight: number;
+    unit: string;
+    sellerName: string;
+    price: number;
+  }[];
   transactionType: "Donation" | "Purchase";
   status: "Completed" | "Pending" | "Failed";
   timestamp: Timestamp | null;
@@ -60,10 +68,10 @@ const Transactions = () => {
 
         const txDataPromises = txSnapshot.docs.map(async (docSnap) => {
           const data = docSnap.data();
-
           let buyerDonorName = "N/A";
-          const buyerId = data.buyerId;
-          const donorId = data.donorId;
+
+          const buyerId: string | undefined = data.buyerId;
+          const donorId: string | undefined = data.donorId;
 
           if (buyerId) {
             const buyerDoc = await getDoc(doc(db, "users", buyerId));
@@ -79,63 +87,34 @@ const Transactions = () => {
             }
           }
 
-          const itemsArray = data.items || [];
-          const cropNames = itemsArray.map((item: any) => item.name || "N/A");
+          const itemsArray: Item[] = data.items || [];
 
-          const totalAmount = itemsArray.reduce((sum: number, item: any) => {
-            const price = parseFloat(item.price);
-            return sum + (isNaN(price) ? 0 : price);
-          }, 0);
-
-          const totalWeight = itemsArray.reduce((sum: number, item: any) => {
-            const weight = parseFloat(item.weight);
-            return sum + (isNaN(weight) ? 0 : weight);
-          }, 0);
-
-          const unit = itemsArray.length > 0 ? itemsArray[0].unit || "" : "";
-
-          let sellerIds: string[] = [];
-
-          if (itemsArray.length > 0) {
-            sellerIds = Array.from(
-              new Set(
-                itemsArray
-                  .map((item: any) => item.sellerId)
-                  .filter((id: any) => typeof id === "string")
-              )
-            );
-          }
-
-          if (
-            sellerIds.length === 0 &&
-            data.transactionType &&
-            data.transactionType.toLowerCase() === "sale" &&
-            typeof data.sellerId === "string"
-          ) {
-            sellerIds = [data.sellerId];
-          }
-
-          const sellerNames = await Promise.all(
-            sellerIds.map(async (id) => {
-              const sellerDoc = await getDoc(doc(db, "users", id));
-              if (sellerDoc.exists()) {
-                const sellerData = sellerDoc.data();
-                const name = `${sellerData.firstname || ""} ${sellerData.lastname || ""}`.trim();
-                return { name, id };
+          const items = await Promise.all(
+            itemsArray.map(async (item) => {
+              let sellerName = "Unknown Seller";
+              if (item.sellerId) {
+                const sellerDoc = await getDoc(doc(db, "users", item.sellerId));
+                if (sellerDoc.exists()) {
+                  const sellerData = sellerDoc.data();
+                  sellerName = `${sellerData.firstname || ""} ${sellerData.lastname || ""}`.trim();
+                }
               }
-              return { name: "Unknown Seller", id };
+
+              return {
+                name: item.name || "N/A",
+                weight: parseFloat(item.weight as unknown as string) || 0,
+                unit: item.unit || "",
+                price: parseFloat(item.price as unknown as string) || 0,
+                sellerName,
+              };
             })
           );
 
           return {
             id: docSnap.id,
             buyerDonorName,
-            sellerNames,
             farmerName: data.farmerName || "N/A",
-            crops: cropNames,
-            weight: totalWeight,
-            unit,
-            amount: totalAmount,
+            items,
             transactionType:
               data.transactionType?.toLowerCase() === "donation"
                 ? "Donation"
@@ -159,7 +138,7 @@ const Transactions = () => {
 
   const sellerFilterOptions = Array.from(
     new Set(
-      transactions.flatMap((tx) => tx.sellerNames.map((s) => s.name))
+      transactions.flatMap((tx) => tx.items.map((item) => item.sellerName))
     )
   );
 
@@ -169,18 +148,18 @@ const Transactions = () => {
       tx.id.toLowerCase().includes(search) ||
       tx.buyerDonorName.toLowerCase().includes(search) ||
       tx.farmerName.toLowerCase().includes(search) ||
-      tx.sellerNames.some((s) => s.name.toLowerCase().includes(search));
+      tx.items.some((item) => item.sellerName.toLowerCase().includes(search));
 
     const matchesType = !filterType || tx.transactionType === filterType;
     const matchesStatus = !filterStatus || tx.status === filterStatus;
     const matchesSeller =
-      !filterSeller || tx.sellerNames.some((s) => s.name === filterSeller);
+      !filterSeller || tx.items.some((item) => item.sellerName === filterSeller);
 
     return matchesSearch && matchesType && matchesStatus && matchesSeller;
   });
 
   const formatDate = (timestamp: Timestamp | null) => {
-    if (timestamp && typeof timestamp.toDate === "function") {
+    if (timestamp?.toDate) {
       return timestamp.toDate().toLocaleString();
     }
     return "N/A";
@@ -212,6 +191,7 @@ const Transactions = () => {
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {/* Filter: Type */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -233,6 +213,7 @@ const Transactions = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Filter: Status */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -257,6 +238,7 @@ const Transactions = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Filter: Seller */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -283,61 +265,60 @@ const Transactions = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-left">Transaction ID</TableHead>
-              <TableHead className="text-left">Seller</TableHead>
-              <TableHead className="text-left">Buyer/Donor</TableHead>
-              <TableHead className="text-left">Crop</TableHead>
-              <TableHead className="text-left">Quantity</TableHead>
-              <TableHead className="text-left">Amount</TableHead>
-              <TableHead className="text-left">Type</TableHead>
-              <TableHead className="text-left">Status</TableHead>
-              <TableHead className="text-left">Date</TableHead>
+              <TableHead>Transaction ID</TableHead>
+              <TableHead>Seller</TableHead>
+              <TableHead>Buyer/Donor</TableHead>
+              <TableHead>Crop</TableHead>
+              <TableHead>Quantity</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-  {filteredTransactions.length === 0 ? (
-    <TableRow>
-      <TableCell colSpan={9} className="text-center py-8 text-admin-textSecondary">
-        {loading
-          ? "Loading transactions..."
-          : "No transactions found matching the criteria."}
-      </TableCell>
-    </TableRow>
-  ) : (
-    filteredTransactions.map((tx) => (
-      <TableRow key={tx.id}>
-        <TableCell>{tx.id}</TableCell>
-        <TableCell>
-          {tx.sellerNames.map((seller, i) => (
-            <div key={i}>
-              {seller.name}
-            </div>
-          ))}
-        </TableCell>
-        <TableCell>{tx.buyerDonorName}</TableCell>
-        <TableCell>
-          {tx.crops.length > 0 ? (
-            <div className="flex flex-col space-y-1">
-              {tx.crops.map((cropName, index) => (
-                <span key={index}>{cropName}</span>
-              ))}
-            </div>
-          ) : (
-            "N/A"
-          )}
-        </TableCell>
-        <TableCell>
-          {tx.weight} {tx.unit}
-        </TableCell>
-        <TableCell>{formatAmount(tx.amount)}</TableCell>
-        <TableCell>{tx.transactionType}</TableCell>
-        <TableCell>{tx.status}</TableCell>
-        <TableCell>{formatDate(tx.timestamp)}</TableCell>
-      </TableRow>
-    ))
-  )}
-</TableBody>
-
+            {filteredTransactions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-8 text-admin-textSecondary">
+                  {loading
+                    ? "Loading transactions..."
+                    : "No transactions found matching the criteria."}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredTransactions.map((tx) => (
+                <TableRow key={tx.id}>
+                  <TableCell>{tx.id}</TableCell>
+                  <TableCell>
+                    {tx.items.map((item, i) => (
+                      <div key={i}>{item.sellerName}</div>
+                    ))}
+                  </TableCell>
+                  <TableCell>{tx.buyerDonorName}</TableCell>
+                  <TableCell>
+                    {tx.items.map((item, i) => (
+                      <div key={i}>{item.name}</div>
+                    ))}
+                  </TableCell>
+                  <TableCell>
+                    {tx.items.map((item, i) => (
+                      <div key={i}>
+                        {item.weight} {item.unit}
+                      </div>
+                    ))}
+                  </TableCell>
+                  <TableCell>
+                    {tx.items.map((item, i) => (
+                      <div key={i}>{formatAmount(item.price)}</div>
+                    ))}
+                  </TableCell>
+                  <TableCell>{tx.transactionType}</TableCell>
+                  <TableCell>{tx.status}</TableCell>
+                  <TableCell>{formatDate(tx.timestamp)}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
         </Table>
       </div>
     </PageContainer>
