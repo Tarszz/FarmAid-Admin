@@ -27,35 +27,42 @@ const MetricsGrid: React.FC = () => {
     const unsubscribeTransactions = onSnapshot(collection(db, 'transactions'), (snapshot) => {
       let donationTotal = 0;
       let salesTotal = 0;
-      let familySet = new Set();
-
+      const familySet = new Set<string>();
+  
       snapshot.forEach(doc => {
         const data = doc.data();
-        const amount = Number(data.totalAmount || 0);
-
+  
         if (data.transactionType === 'donation') {
-          donationTotal += amount;
+          donationTotal += Number(data.totalAmount || 0);
           if (data.familyId) {
             familySet.add(data.familyId);
           }
-        } else if (data.transactionType === 'purchase') {
-          salesTotal += amount;
+        }
+  
+        if (data.transactionType === 'sale' && Array.isArray(data.items)) {
+          for (const item of data.items) {
+            const price = typeof item?.price === 'number' ? item.price : Number(item?.price || 0);
+            salesTotal += price;
+          }
         }
       });
-
+  
       setTotalDonations({ value: donationTotal, change: 0 });
       setTotalSales({ value: salesTotal, change: 0 });
       setImpactedFamilies({ value: familySet.size, change: 0 });
     });
+  
     const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const farmers = snapshot.docs.filter(doc => doc.data().userType === 'Farmer');
       setActiveFarmers({ value: farmers.length, change: 0 });
     });
+  
     return () => {
       unsubscribeTransactions();
       unsubscribeUsers();
     };
   }, []);
+  
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -67,6 +67,7 @@ const Users = () => {
   const filteredUsers = users.filter((user: User) => {
     const matchesSearch =
       (user.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      (user.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
 
     const matchesType = !filterType || user.userType === filterType;
@@ -179,7 +180,7 @@ const Users = () => {
               <TableHead className="text-left">Status</TableHead>
               <TableHead className="text-left">Email</TableHead>
               <TableHead className="text-left">Date Joined</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              <TableHead className="text-left pl-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -192,7 +193,9 @@ const Users = () => {
             ) : (
               filteredUsers.map((user: User) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.firstname || 'Unknown'}</TableCell>
+                  <TableCell className="font-medium">
+                    {`${user.firstname || ''} ${user.lastname || ''}`.trim() || 'Unknown'}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="bg-admin-secondary/5">
                       {user.userType || 'Unknown'}
@@ -215,16 +218,18 @@ const Users = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{formatDate(user.dateJoined)}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'view')}>
-                      <EyeIcon className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'verify')}>
-                      <BadgeCheck className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'disable')}>
-                      <Ban className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-left pl-6">
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'view')}>
+                        <EyeIcon className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'verify')}>
+                        <BadgeCheck className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'disable')}>
+                        <Ban className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -243,7 +248,7 @@ const Users = () => {
               <p><strong>First Name:</strong> {selectedUser.firstname || 'N/A'}</p>
               <p><strong>Last Name:</strong> {selectedUser.lastname || 'N/A'}</p>
               <p><strong>Email:</strong> {selectedUser.email}</p>
-              <p><strong>Address:</strong> {selectedUser.address|| 'N/A'}</p>
+              <p><strong>Address:</strong> {selectedUser.address || 'N/A'}</p>
               <p><strong>Phone Number:</strong> {selectedUser.phoneNumber || 'N/A'}</p>
               <p><strong>User Type:</strong> {selectedUser.userType}</p>
               <p><strong>Status:</strong> {selectedUser.status}</p>
@@ -264,12 +269,12 @@ const Users = () => {
             </DialogDescription>
           )}
           <DialogFooter>
-            <Button onClick={() => setDialogOpen(false)} variant="outline">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
             {dialogAction !== 'view' && (
               <Button onClick={handleActionConfirm}>
-                Confirm
+                {dialogAction === 'verify' ? 'Verify' : 'Disable'}
               </Button>
             )}
           </DialogFooter>

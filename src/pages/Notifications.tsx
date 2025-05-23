@@ -18,25 +18,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Search, Filter, ChevronDown, Bell, MessageSquare, Truck } from 'lucide-react';
+import { Search, Bell, MessageSquare, Truck } from 'lucide-react';
 
 type Notification = {
   id: string;
   type: 'Donation' | 'Delivery' | 'Dispute' | 'System' | string;
   message: string;
-  date: any;
+  timestamp: any;
   read?: boolean;
   buyerId?: string;
   transactionType?: string;
@@ -46,7 +39,8 @@ type Notification = {
   quantityUnit?: string;
   imageUrl?: string;
   organizationName?: string;
-  transactionNumber?: string;
+  transactionNumber?: string; // doc id in transactions collection (can keep for reference)
+  transactionId?: string; // actual transactionId field from notifications collection
 };
 
 type User = {
@@ -91,7 +85,7 @@ const Notifications = () => {
             buyerId: data.buyerId || '',
             transactionType: data.transactionType || '',
             message: data.message || '',
-            date: data.date || null,
+            timestamp: data.timestamp || null,
             productId: data.productId || '',
             category: data.category || '',
             quantity: data.quantity || 0,
@@ -99,6 +93,7 @@ const Notifications = () => {
             imageUrl: data.imageUrl || '',
             organizationName: data.organizationName || '',
             transactionNumber: data.transactionNumber || '',
+            transactionId: data.transactionId || '',  // <-- Read transactionId directly here
             type: data.type || 'System',
             read: data.read || false,
           };
@@ -110,6 +105,7 @@ const Notifications = () => {
           }
         });
 
+        // Fetch users info
         const usersMap: Record<string, User> = {};
         await Promise.all(
           Array.from(buyerIds).map(async (buyerId) => {
@@ -140,7 +136,7 @@ const Notifications = () => {
     fetchNotifications();
   }, []);
 
-  // Prepare notifications for display: replace 'you' and 'your' with buyer full names
+  // Replace 'you' and 'your' with buyer full names in messages
   const displayedNotifications = notifications
     .map((notification) => {
       let updatedMessage = notification.message;
@@ -153,8 +149,8 @@ const Notifications = () => {
       return {
         ...notification,
         message: updatedMessage,
-        formattedDate: notification.date?.seconds
-          ? new Date(notification.date.seconds * 1000).toLocaleString()
+        formattedDate: notification.timestamp?.seconds
+          ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
           : 'Invalid date',
       };
     })
@@ -192,24 +188,6 @@ const Notifications = () => {
             className="pl-9 w-full"
           />
         </div>
-        {/*<div className="flex flex-wrap gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <Filter className="h-4 w-4 mr-1" />
-                Type
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setFilterType(null)}>All Types</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Donation')}>Donation</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Delivery')}>Delivery</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Dispute')}>Dispute</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('System')}>System</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>*/}
       </div>
 
       <div className="rounded-md border">
@@ -219,7 +197,6 @@ const Notifications = () => {
               <TableHead>Type</TableHead>
               <TableHead>Message</TableHead>
               <TableHead>Date</TableHead>
-              
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -245,7 +222,6 @@ const Notifications = () => {
                   </TableCell>
                   <TableCell>{notification.message}</TableCell>
                   <TableCell>{notification.formattedDate}</TableCell>
-                  
                   <TableCell className="text-right">
                     <Dialog
                       open={selectedNotification?.id === notification.id}
@@ -272,9 +248,13 @@ const Notifications = () => {
                                 ? `${users[selectedNotification.buyerId].firstname} ${users[selectedNotification.buyerId].lastname}`
                                 : 'N/A'}
                             </p>
-                            <p>
-                              <strong>Transaction Type:</strong> {selectedNotification.transactionType || selectedNotification.type}
-                            </p>
+                            <strong>Transaction Type:</strong>{' '}
+{selectedNotification.transactionType?.toLowerCase() === 'sale'
+  ? 'Purchase'
+  : selectedNotification.transactionType?.toLowerCase() === 'donation'
+  ? 'Donation'
+  : selectedNotification.transactionType || selectedNotification.type}
+
                             <p>
                               <strong>Product ID:</strong> {selectedNotification.productId || 'N/A'}
                             </p>
@@ -293,16 +273,17 @@ const Notifications = () => {
                             </p>
                             <p>
                               <strong>Transaction Number:</strong>{' '}
-                              {selectedNotification.transactionNumber || 'N/A'}
+                              {selectedNotification.transactionId || 'N/A'}
                             </p>
                             {selectedNotification.imageUrl && (
                               <div>
                                 <strong>Image:</strong>
                                 <img
-                                  src={selectedNotification.imageUrl}
-                                  alt="Notification related"
-                                  className="mt-2 max-w-full rounded-md border"
-                                />
+  src={selectedNotification.imageUrl}
+  alt="Notification related"
+  className="mt-2 max-h-96 max-w-full w-auto object-contain rounded-md"
+/>
+
                               </div>
                             )}
                           </div>

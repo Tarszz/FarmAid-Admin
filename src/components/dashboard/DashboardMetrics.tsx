@@ -63,26 +63,30 @@ const DashboardMetrics = () => {
       ]);
     });
     // Listen to transactions collection
-    const unsubscribeTransactions = onSnapshot(transactionsCol, (snapshot) => {
-      const transactions = snapshot.docs.map(doc => doc.data());
-      let totalPurchases = 0;
-      let totalDonations = 0;
+    // Listen to transactions collection
+const unsubscribeTransactions = onSnapshot(transactionsCol, (snapshot) => {
+  const transactions = snapshot.docs.map(doc => doc.data());
+  let totalPurchases = 0;
+  let totalDonations = 0;
 
-      transactions.forEach(txn => {
-        if (txn.transactionType === 'purchase') {
-          totalPurchases += Number(txn.totalAmount || 0);
-        } else if (txn.transactionType === 'donation') {
-          totalDonations += Number(txn.totalAmount || 0);
-        }
+  transactions.forEach(txn => {
+    if (txn.transactionType === 'sale' && Array.isArray(txn.items)) {
+      txn.items.forEach(item => {
+        totalPurchases += Number(item.price || 0);
       });
+    } else if (txn.transactionType === 'donation') {
+      totalDonations += Number(txn.totalAmount || 0);
+    }
+  });
 
-      setMetricsData(prev => [
-        prev[0],
-        prev[1],
-        { ...prev[2], value: `₱${totalPurchases.toLocaleString()}` },
-        { ...prev[3], value: `₱${totalDonations.toLocaleString()}` }
-      ]);
-    });
+  setMetricsData(prev => [
+    prev[0],
+    prev[1],
+    { ...prev[2], value: `₱${totalPurchases.toLocaleString()}` },
+    { ...prev[3], value: `₱${totalDonations.toLocaleString()}` }
+  ]);
+});
+
 
     return () => {
       unsubscribeUsers();

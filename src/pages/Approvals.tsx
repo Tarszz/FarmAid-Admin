@@ -120,7 +120,8 @@ const Approvals = () => {
               <TableHead className="text-left">User Type</TableHead>
               <TableHead className="text-left">Email</TableHead>
               <TableHead className="text-left">Date Joined</TableHead>
-              <TableHead className="text-center">Actions</TableHead>
+              {/* Removed text-center, use padding to shift left */}
+              <TableHead className="pl-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -133,7 +134,7 @@ const Approvals = () => {
             ) : (
               pendingUsers.map((user: User) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.firstname || 'Unknown'}</TableCell>
+                  <TableCell className="font-medium">{`${user.firstname || ''} ${user.lastname || ''}`.trim() || 'Unknown'}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="bg-admin-secondary/5">
                       {user.userType}
@@ -141,7 +142,8 @@ const Approvals = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{formatDate(user.dateJoined)}</TableCell>
-                  <TableCell className="text-right space-x-2">
+                  {/* Align actions left with padding */}
+                  <TableCell className="pl-6 space-x-2">
                     <Button variant="outline" size="sm" onClick={() => handleActionClick(user, 'view')}>
                       <EyeIcon className="h-4 w-4" />
                     </Button>
