@@ -62,7 +62,6 @@ const DashboardMetrics = () => {
         prev[3],
       ]);
     });
-
     // Listen to transactions collection
     const unsubscribeTransactions = onSnapshot(transactionsCol, (snapshot) => {
       const transactions = snapshot.docs.map(doc => doc.data());

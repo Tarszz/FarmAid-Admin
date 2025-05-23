@@ -47,12 +47,10 @@ const MetricsGrid: React.FC = () => {
       setTotalSales({ value: salesTotal, change: 0 });
       setImpactedFamilies({ value: familySet.size, change: 0 });
     });
-
     const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
       const farmers = snapshot.docs.filter(doc => doc.data().userType === 'Farmer');
       setActiveFarmers({ value: farmers.length, change: 0 });
     });
-
     return () => {
       unsubscribeTransactions();
       unsubscribeUsers();

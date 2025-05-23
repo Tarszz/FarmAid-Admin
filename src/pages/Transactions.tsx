@@ -32,17 +32,12 @@ type Transaction = {
   id: string;
   buyerDonorName: string;
   farmerName: string;
-  crop: string;
-  quantity: number;
-  unit: string;
+  crops: string[];
+  quantity: string; // combined quantities + units as string
   amount: number;
   transactionType: "Donation" | "Purchase";
   status: "Completed" | "Pending" | "Failed";
-<<<<<<< HEAD
   timestamp: Timestamp | null;
-=======
-  date: Timestamp | null;
->>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
 };
 
 const Transactions = () => {
@@ -61,7 +56,6 @@ const Transactions = () => {
         const txDataPromises = txSnapshot.docs.map(async (docSnap) => {
           const data = docSnap.data();
 
-          // Fetch Buyer or Donor name from 'users' collection based on buyerId or donorId
           let buyerDonorName = "N/A";
           const buyerId = data.buyerId;
           const donorId = data.donorId;
@@ -80,50 +74,37 @@ const Transactions = () => {
             }
           }
 
-<<<<<<< HEAD
           const itemsArray = data.items || [];
-const totalAmount = itemsArray.reduce((sum: number, item: any) => {
-  const price = parseFloat(item.price);
-  return sum + (isNaN(price) ? 0 : price);
-}, 0);
+          const cropNames = itemsArray.map((item: any) => item.name || "N/A");
 
-return {
-  id: docSnap.id,
-  buyerDonorName,
-  farmerName: data.farmerName || "N/A",
-  crop: data.item || "N/A",
-  quantity: data.quantity || 0,
-  unit: data.unit || "",
-  amount: totalAmount, // this now reflects the sum of prices in items[]
-  transactionType:
-    data.transactionType === "donation"
-      ? "Donation"
-      : "Purchase",
-  status: data.status || "Pending",
-  timestamp: data.timestamp || null,
-} as Transaction;
+          // Combine weights and units into a readable quantity string
+          const quantities = itemsArray.map((item: any) => {
+            const weight = item.weight ?? 0;
+            const unit = item.unit ?? "";
+            return `${weight} ${unit}`.trim();
+          });
+          const quantityStr = quantities.join(", ");
 
-=======
+          const totalAmount = itemsArray.reduce((sum: number, item: any) => {
+            const price = parseFloat(item.price);
+            return sum + (isNaN(price) ? 0 : price);
+          }, 0);
+
           return {
             id: docSnap.id,
             buyerDonorName,
             farmerName: data.farmerName || "N/A",
-            crop: data.item || "N/A",
-            quantity: data.quantity || 0,
-            unit: data.unit || "",
-            amount: data.totalAmount || 0,
+            crops: cropNames,
+            quantity: quantityStr,
+            amount: totalAmount,
             transactionType:
-              data.transactionType === "donation"
-                ? "Donation"
-                : "Purchase",
+              data.transactionType === "donation" ? "Donation" : "Purchase",
             status: data.status || "Pending",
-            date: data.date || null,
+            timestamp: data.timestamp || null,
           } as Transaction;
->>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
         });
 
         const txData = await Promise.all(txDataPromises);
-
         setTransactions(txData);
       } catch (error) {
         console.error("Error fetching transactions:", error);
@@ -245,11 +226,7 @@ return {
           <TableHeader>
             <TableRow>
               <TableHead className="text-left">Transaction ID</TableHead>
-<<<<<<< HEAD
-              {/*<TableHead className="text-left">Farmer</TableHead>*/}
-=======
               <TableHead className="text-left">Farmer</TableHead>
->>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
               <TableHead className="text-left">Buyer/Donor</TableHead>
               <TableHead className="text-left">Crop</TableHead>
               <TableHead className="text-left">Quantity</TableHead>
@@ -272,24 +249,24 @@ return {
               filteredTransactions.map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell>{tx.id}</TableCell>
-<<<<<<< HEAD
-                  {/*<TableCell>{tx.farmerName}</TableCell>*/}
-=======
                   <TableCell>{tx.farmerName}</TableCell>
->>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
                   <TableCell>{tx.buyerDonorName}</TableCell>
-                  <TableCell>{tx.crop}</TableCell>
                   <TableCell>
-                    {tx.quantity} {tx.unit}
+                    {tx.crops.length > 0 ? (
+                      <div className="flex flex-col space-y-1">
+                        {tx.crops.map((cropName, index) => (
+                          <span key={index}>{cropName}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      "N/A"
+                    )}
                   </TableCell>
+                  <TableCell>{tx.quantity || "N/A"}</TableCell>
                   <TableCell>{formatAmount(tx.amount)}</TableCell>
                   <TableCell>{tx.transactionType}</TableCell>
                   <TableCell>{tx.status}</TableCell>
-<<<<<<< HEAD
                   <TableCell>{formatDate(tx.timestamp)}</TableCell>
-=======
-                  <TableCell>{formatDate(tx.date)}</TableCell>
->>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
                 </TableRow>
               ))
             )}
