@@ -89,7 +89,7 @@ const TransactionsChart: React.FC<TransactionsChartProps> = ({
             <XAxis dataKey="name" axisLine={false} tickLine={false} />
             <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `₱${value}`} />
             <Tooltip 
-              formatter={(value) => [`₱${value}`, 'Amount']}
+              formatter={(value) => [`₱${value}`, 'totalAmount']}
               contentStyle={{ 
                 backgroundColor: '#fff', 
                 border: '1px solid #E9EDF5',

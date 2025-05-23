@@ -62,7 +62,8 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <PendingApprovals approvals={pendingApprovals} />
+        <PendingApprovals />
+
       </div>
     </div>
   );

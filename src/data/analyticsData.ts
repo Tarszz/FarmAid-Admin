@@ -24,4 +24,22 @@ export const sampleCropData = [
   { name: 'Spices', value: 20 },
   { name: 'Fruits', value: 15 },
 ];
+export const MetricsData = [
+  { name: 'Root crops', value: 35 },
+  { name: 'Vegetables', value: 25 },
+  { name: 'Spices', value: 20 },
+  { name: 'Fruits', value: 15 },
+];
+export type MetricsData = {
+  totalDonations: number;
+  totalSales: number;
+  activeFarmers: number;
+  impactedFamilies: number;
+};
 
+export const sampleMetricsData: MetricsData = {
+  totalDonations: 0,
+  totalSales: 0,
+  activeFarmers: 0,
+  impactedFamilies: 0
+};

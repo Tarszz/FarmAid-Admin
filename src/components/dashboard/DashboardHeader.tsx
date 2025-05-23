@@ -10,7 +10,9 @@ interface DashboardHeaderProps {
   title: string;
   subtitle?: string;
   onNotificationClick?: () => void;
+  onMessageClick?: () => void; 
 }
+
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ 
   title, 

@@ -11,14 +11,15 @@ import {
   getDocs,
   doc,
   getDoc,
+  Timestamp,
 } from 'firebase/firestore';
-import { db } from '../../../firebase'; // adjust import path
+import { db } from '../../../firebase'; 
 
 type NotificationItem = {
   id: string;
   message: string;
   buyerId: string;
-  timestamp: number; // changed to number since Firestore stores it as number
+  timestamp: Timestamp; // changed to number since Firestore stores it as number
 };
 
 type User = {
@@ -68,7 +69,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ onViewAll }) => {
           activities.push({
             id: docSnap.id,
             user: { ...userData, initials },
-            timestamp: new Date(notification.timestamp), // <-- here is the fix
+            timestamp: new Date(notification.timestamp.toDate()), 
             message: replacedMessage,
           });
         }

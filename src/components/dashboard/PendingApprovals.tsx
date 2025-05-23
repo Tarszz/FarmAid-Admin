@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, Users, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { db } from '../../../firebase'; // adjust as needed
+import { db } from '../../../firebase'; 
 
 type User = {
   id: string;

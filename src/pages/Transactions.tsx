@@ -38,7 +38,7 @@ type Transaction = {
   amount: number;
   transactionType: "Donation" | "Purchase";
   status: "Completed" | "Pending" | "Failed";
-  date: Timestamp | null;
+  timestamp: Timestamp | null;
 };
 
 const Transactions = () => {
@@ -76,21 +76,28 @@ const Transactions = () => {
             }
           }
 
-          return {
-            id: docSnap.id,
-            buyerDonorName,
-            farmerName: data.farmerName || "N/A",
-            crop: data.item || "N/A",
-            quantity: data.quantity || 0,
-            unit: data.unit || "",
-            amount: data.totalAmount || 0,
-            transactionType:
-              data.transactionType === "donation"
-                ? "Donation"
-                : "Purchase",
-            status: data.status || "Pending",
-            date: data.date || null,
-          } as Transaction;
+          const itemsArray = data.items || [];
+const totalAmount = itemsArray.reduce((sum: number, item: any) => {
+  const price = parseFloat(item.price);
+  return sum + (isNaN(price) ? 0 : price);
+}, 0);
+
+return {
+  id: docSnap.id,
+  buyerDonorName,
+  farmerName: data.farmerName || "N/A",
+  crop: data.item || "N/A",
+  quantity: data.quantity || 0,
+  unit: data.unit || "",
+  amount: totalAmount, // this now reflects the sum of prices in items[]
+  transactionType:
+    data.transactionType === "donation"
+      ? "Donation"
+      : "Purchase",
+  status: data.status || "Pending",
+  timestamp: data.timestamp || null,
+} as Transaction;
+
         });
 
         const txData = await Promise.all(txDataPromises);
@@ -248,7 +255,7 @@ const Transactions = () => {
                   <TableCell>{formatAmount(tx.amount)}</TableCell>
                   <TableCell>{tx.transactionType}</TableCell>
                   <TableCell>{tx.status}</TableCell>
-                  <TableCell>{formatDate(tx.date)}</TableCell>
+                  <TableCell>{formatDate(tx.timestamp)}</TableCell>
                 </TableRow>
               ))
             )}
