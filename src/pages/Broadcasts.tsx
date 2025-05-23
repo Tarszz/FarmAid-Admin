@@ -34,9 +34,15 @@ import {
 
 const audienceOptions = [
   { id: "all-users", label: "All Users" },
+<<<<<<< HEAD
   { id: "farmer", label: "Farmer" },
   { id: "organizations", label: "Organizations" },
   { id: "market", label: "Market" },
+=======
+  { id: "farmers", label: "Farmers" },
+  { id: "organizations", label: "Organizations" },
+  { id: "markets", label: "Markets" },
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
 ];
 
 const Broadcasts = () => {

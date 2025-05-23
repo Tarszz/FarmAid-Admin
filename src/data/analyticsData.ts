@@ -24,6 +24,7 @@ export const sampleCropData = [
   { name: 'Spices', value: 20 },
   { name: 'Fruits', value: 15 },
 ];
+<<<<<<< HEAD
 export const MetricsData = [
   { name: 'Root crops', value: 35 },
   { name: 'Vegetables', value: 25 },
@@ -43,3 +44,15 @@ export const sampleMetricsData: MetricsData = {
   activeFarmers: 0,
   impactedFamilies: 0
 };
+=======
+
+export const sampleMetricsData = {
+  totalDonations: { value: 12600, change: 24 },
+  totalSales: { value: 40300, change: 18 },
+  activeFarmers: { value: 842, change: 12 },
+  impactedFamilies: { value: 1260, change: 24 }
+};
+
+// Export the type explicitly with export type
+export type MetricsData = typeof sampleMetricsData;
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7

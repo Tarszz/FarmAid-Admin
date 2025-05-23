@@ -38,7 +38,11 @@ type Transaction = {
   amount: number;
   transactionType: "Donation" | "Purchase";
   status: "Completed" | "Pending" | "Failed";
+<<<<<<< HEAD
   timestamp: Timestamp | null;
+=======
+  date: Timestamp | null;
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
 };
 
 const Transactions = () => {
@@ -76,6 +80,7 @@ const Transactions = () => {
             }
           }
 
+<<<<<<< HEAD
           const itemsArray = data.items || [];
 const totalAmount = itemsArray.reduce((sum: number, item: any) => {
   const price = parseFloat(item.price);
@@ -98,6 +103,23 @@ return {
   timestamp: data.timestamp || null,
 } as Transaction;
 
+=======
+          return {
+            id: docSnap.id,
+            buyerDonorName,
+            farmerName: data.farmerName || "N/A",
+            crop: data.item || "N/A",
+            quantity: data.quantity || 0,
+            unit: data.unit || "",
+            amount: data.totalAmount || 0,
+            transactionType:
+              data.transactionType === "donation"
+                ? "Donation"
+                : "Purchase",
+            status: data.status || "Pending",
+            date: data.date || null,
+          } as Transaction;
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
         });
 
         const txData = await Promise.all(txDataPromises);
@@ -223,7 +245,11 @@ return {
           <TableHeader>
             <TableRow>
               <TableHead className="text-left">Transaction ID</TableHead>
+<<<<<<< HEAD
               {/*<TableHead className="text-left">Farmer</TableHead>*/}
+=======
+              <TableHead className="text-left">Farmer</TableHead>
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
               <TableHead className="text-left">Buyer/Donor</TableHead>
               <TableHead className="text-left">Crop</TableHead>
               <TableHead className="text-left">Quantity</TableHead>
@@ -246,7 +272,11 @@ return {
               filteredTransactions.map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell>{tx.id}</TableCell>
+<<<<<<< HEAD
                   {/*<TableCell>{tx.farmerName}</TableCell>*/}
+=======
+                  <TableCell>{tx.farmerName}</TableCell>
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
                   <TableCell>{tx.buyerDonorName}</TableCell>
                   <TableCell>{tx.crop}</TableCell>
                   <TableCell>
@@ -255,7 +285,11 @@ return {
                   <TableCell>{formatAmount(tx.amount)}</TableCell>
                   <TableCell>{tx.transactionType}</TableCell>
                   <TableCell>{tx.status}</TableCell>
+<<<<<<< HEAD
                   <TableCell>{formatDate(tx.timestamp)}</TableCell>
+=======
+                  <TableCell>{formatDate(tx.date)}</TableCell>
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
                 </TableRow>
               ))
             )}

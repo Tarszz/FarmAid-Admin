@@ -11,15 +11,24 @@ import {
   getDocs,
   doc,
   getDoc,
+<<<<<<< HEAD
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../../../firebase'; 
+=======
+} from 'firebase/firestore';
+import { db } from '../../../firebase'; // adjust import path
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
 
 type NotificationItem = {
   id: string;
   message: string;
   buyerId: string;
+<<<<<<< HEAD
   timestamp: Timestamp; // changed to number since Firestore stores it as number
+=======
+  timestamp: number; // changed to number since Firestore stores it as number
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
 };
 
 type User = {
@@ -69,7 +78,11 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ onViewAll }) => {
           activities.push({
             id: docSnap.id,
             user: { ...userData, initials },
+<<<<<<< HEAD
             timestamp: new Date(notification.timestamp.toDate()), 
+=======
+            timestamp: new Date(notification.timestamp), // <-- here is the fix
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
             message: replacedMessage,
           });
         }

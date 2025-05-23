@@ -62,8 +62,12 @@ const Dashboard = () => {
           </div>
         </div>
         
+<<<<<<< HEAD
         <PendingApprovals />
 
+=======
+        <PendingApprovals approvals={pendingApprovals} />
+>>>>>>> ff8dff1e45298d61a46e7d80cf9dc92bb4f209c7
       </div>
     </div>
   );
