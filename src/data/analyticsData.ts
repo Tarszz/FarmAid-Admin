@@ -31,5 +31,4 @@ export const sampleMetricsData = {
   impactedFamilies: { value: 1260, change: 24 }
 };
 
-// Export the MetricsData type explicitly
 export type MetricsData = typeof sampleMetricsData;
