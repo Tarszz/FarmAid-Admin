@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -19,8 +18,7 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simple validation
+
     if (!email || !password) {
       toast.error('Please enter both email and password');
       setIsLoading(false);
@@ -28,29 +26,24 @@ const Login = () => {
     }
 
     try {
-      // Check if we should use Firebase auth or mock auth
-      if (email.includes('admin@farmaid')) {
-        // Use Firebase auth
-        await login(email, password);
+      // Hard-coded admin credentials
+      const adminEmail = 'admin@farmaid.gov';
+      const adminPassword = 'valcityagriadmin@123!';
+
+      if (email === adminEmail && password === adminPassword) {
+        // If you want Firebase auth, uncomment the next line
+        // await login(email, password);
+
         localStorage.setItem('isAuthenticated', 'true');
+        toast.success('Login successful!');
         navigate('/dashboard');
       } else {
-        // Mock authentication for demo
-        // For demo purposes: if email contains "admin", login succeeds
-        setTimeout(() => {
-          if (email.includes('admin')) {
-            toast.success('Login successful!');
-            localStorage.setItem('isAuthenticated', 'true');
-            navigate('/dashboard');
-          } else {
-            toast.error('Invalid credentials. Try using an email with "admin" in it.');
-          }
-          setIsLoading(false);
-        }, 1500);
+        toast.error('Invalid email or password.');
       }
-    } catch (error) {
+    } catch (error: any) {
+      toast.error(error.message || 'Something went wrong.');
+    } finally {
       setIsLoading(false);
-      // Error is already handled in the login function
     }
   };
 
@@ -60,26 +53,26 @@ const Login = () => {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="bg-green-600 p-6 text-white text-center">
             <h1 className="text-3xl font-bold mb-1">FarmAid</h1>
-            <p className="text-green-100">City Agriculture Office Admin</p>
+            <p className="text-green-100">Valenzuela City Agriculture Office Admin</p>
           </div>
-          
+
           <div className="p-8">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Admin Login</h2>
-            
+
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input 
                   id="email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="admin@farmaid.gov"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full"
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
@@ -101,7 +94,7 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-              
+
               <Button 
                 type="submit" 
                 className="w-full bg-green-600 hover:bg-green-700" 
@@ -122,18 +115,18 @@ const Login = () => {
                   </span>
                 )}
               </Button>
-              
+
               <div className="text-center text-sm text-gray-500 mt-4">
-                <p>Demo credentials:</p>
+                <p>Use the authorized admin credentials:</p>
                 <p>Email: admin@farmaid.gov</p>
-                <p>Password: any password</p>
+                <p>Password: valcityagriadmin@123!</p>
               </div>
             </form>
           </div>
         </div>
-        
+
         <p className="text-center text-gray-600 text-sm mt-6">
-          © {new Date().getFullYear()} FarmAid - City Agriculture Office
+          © {new Date().getFullYear()} FarmAid - Valenzuela City Agriculture Office
         </p>
       </div>
     </div>
