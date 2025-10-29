@@ -1,8 +1,5 @@
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* @tailwind base; */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -70,10 +67,20 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
+    border-width: 1px;
+    border-style: solid;
   }
+  html, #root {
+    /* Ensure the root fills the viewport so internal scroll areas work as expected */
+    height: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    /* Prevent the whole page from scrolling; only internal scroll containers (like the sidebar) should scroll */
+    overflow: hidden;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
@@ -91,6 +98,20 @@
   }
 }
 
-.focus-ring {
-  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-secondary focus-visible:ring-opacity-75;
+.focus-ring:focus {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.75); /* Replace with your admin-secondary color */
+}
+
+@layer components {
+  /* Utility to hide native scrollbars while preserving scroll functionality */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
 }
