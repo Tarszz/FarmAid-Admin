@@ -31,13 +31,13 @@ import {
   query,
   orderBy
 } from 'firebase/firestore';
+import { logSuperAdminAction } from '@/lib/firebaseUtils'; // Import your audit log function
 
 const audienceOptions = [
   { id: "all-users", label: "All Users" },
   { id: "farmer", label: "Farmer" },
   { id: "organizations", label: "Organizations" },
   { id: "market", label: "Market" },
-
 ];
 
 const Broadcasts = () => {
@@ -134,6 +134,14 @@ const Broadcasts = () => {
 
     try {
       await addDoc(collection(db, 'announcements'), announcementData);
+
+      // ===== SUPERADMIN AUDIT LOG INTEGRATION =====
+      await logSuperAdminAction(`Created Announcement:
+Title: "${announcementData.title}"
+Audience: ${announcementData.audience}
+Status: ${announcementData.status}
+Send Date: ${announcementData.dateSent.toDate().toLocaleString()}`);
+      // ===========================================
 
       toast({
         title: "Announcement created",
@@ -292,20 +300,18 @@ const Broadcasts = () => {
             <div>
               <label className="text-sm font-medium">Target Audience</label>
               <div className="grid grid-cols-2 gap-2 mt-2">
-                {/* Replace buyers checkbox with markets */}
-{audienceOptions.map((option) => (
-  <label key={option.id} className="flex items-center gap-2 text-sm">
-    <input
-      type="checkbox"
-      checked={newAnnouncement.audienceTargets[option.id] || false}
-      onChange={(e) =>
-        handleAudienceChange(option.id, e.target.checked)
-      }
-    />
-    {option.label}
-  </label>
-))}
-
+                {audienceOptions.map((option) => (
+                  <label key={option.id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={newAnnouncement.audienceTargets[option.id] || false}
+                      onChange={(e) =>
+                        handleAudienceChange(option.id, e.target.checked)
+                      }
+                    />
+                    {option.label}
+                  </label>
+                ))}
               </div>
               <p className="text-xs mt-1 text-muted-foreground">Selected: {getSelectedAudienceText()}</p>
             </div>
