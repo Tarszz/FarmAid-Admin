@@ -94,7 +94,7 @@ const AdminSidebar = () => {
         </h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-4">
+  <div className="flex-1 overflow-y-auto py-4 hide-scrollbar">
         {sidebarSections.map((section, idx) => (
           <div key={idx} className="mb-6 px-4">
             <h2 className="text-admin-secondary text-xs font-semibold uppercase tracking-wider mb-3 pl-2">

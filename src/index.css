@@ -78,6 +78,13 @@
   }
 }
 
+/* Ensure the app root fills the viewport and prevent the page body from scrolling.
+   Individual app regions should manage their own scrolling with overflow utilities. */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -93,4 +100,15 @@
 
 .focus-ring {
   @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-secondary focus-visible:ring-opacity-75;
+}
+
+/* Utility to hide scrollbars while keeping scrolling functional */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+  width: 0;
+  height: 0;
 }

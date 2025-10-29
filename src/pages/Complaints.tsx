@@ -175,7 +175,7 @@ const Complaints: React.FC = () => {
   });
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-full bg-gray-100 overflow-hidden">
       {/* Sidebar */}
       <div className="w-1/3 bg-white border-r flex flex-col">
         {/* Header */}
@@ -224,7 +224,7 @@ const Complaints: React.FC = () => {
         </div>
 
         {/* User List */}
-        <div className="overflow-y-auto flex-1">
+  <div className="overflow-y-auto flex-1">
           {filteredUsers.length === 0 && (
             <p className="text-gray-500 text-center mt-4">No users found</p>
           )}

@@ -24,45 +24,45 @@ const MetricsGrid: React.FC = () => {
   };
 
   useEffect(() => {
-    const unsubscribeTransactions = onSnapshot(collection(db, 'transactions'), (snapshot) => {
-      let donationTotal = 0;
-      let salesTotal = 0;
-      const familySet = new Set<string>();
-  
+    // --- Total Purchases ---
+    const unsubscribePayments = onSnapshot(collection(db, 'payments'), snapshot => {
+      let total = 0;
       snapshot.forEach(doc => {
         const data = doc.data();
-  
-        if (data.transactionType === 'donation') {
-          donationTotal += Number(data.totalAmount || 0);
-          if (data.familyId) {
-            familySet.add(data.familyId);
-          }
-        }
-  
-        if (data.transactionType === 'sale' && Array.isArray(data.items)) {
-          for (const item of data.items) {
-            const price = typeof item?.price === 'number' ? item.price : Number(item?.price || 0);
-            salesTotal += price;
-          }
-        }
+        total += Number(data.amount || 0);
       });
-  
-      setTotalDonations({ value: donationTotal, change: 0 });
-      setTotalSales({ value: salesTotal, change: 0 });
+      setTotalSales({ value: total, change: 0 });
+    });
+
+    // --- Total Donations ---
+    const unsubscribeDonations = onSnapshot(collection(db, 'donation_payments'), snapshot => {
+      let total = 0;
+      const familySet = new Set<string>();
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        total += Number(data.amount || 0);
+
+        // Track families impacted if there's a familyId field
+        if (data.familyId) familySet.add(data.familyId);
+      });
+
+      setTotalDonations({ value: total, change: 0 });
       setImpactedFamilies({ value: familySet.size, change: 0 });
     });
-  
-    const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+
+    // --- Active Farmers ---
+    const unsubscribeUsers = onSnapshot(collection(db, 'users'), snapshot => {
       const farmers = snapshot.docs.filter(doc => doc.data().userType === 'Farmer');
       setActiveFarmers({ value: farmers.length, change: 0 });
     });
-  
+
     return () => {
-      unsubscribeTransactions();
+      unsubscribePayments();
+      unsubscribeDonations();
       unsubscribeUsers();
     };
   }, []);
-  
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -75,7 +75,7 @@ const MetricsGrid: React.FC = () => {
       />
 
       <MetricCard
-        title="Total Sales"
+        title="Total Purchases"
         value={totalSales.value}
         change={totalSales.change}
         icon={DollarSign}

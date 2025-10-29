@@ -4,7 +4,7 @@ export const sampleSalesData = [
   { month: 'Feb', value: 3200 },
   { month: 'Mar', value: 8900 },
   { month: 'Apr', value: 7200 },
-  { month: 'May', value: 9100 },
+  { month: 'May', value: 0 },
   { month: 'Jun', value: 6500 },
 ];
 
@@ -13,7 +13,7 @@ export const sampleDonationsData = [
   { month: 'Feb', value: 1800, families: 180 },
   { month: 'Mar', value: 2200, families: 220 },
   { month: 'Apr', value: 1900, families: 190 },
-  { month: 'May', value: 2500, families: 250 },
+  { month: 'May', value: 0, families: 250 },
   { month: 'Jun', value: 3000, families: 300 },
 ];
 

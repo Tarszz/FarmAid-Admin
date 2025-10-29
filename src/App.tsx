@@ -46,7 +46,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-admin-background dark:bg-gray-900">
+      <div className="min-h-full flex items-center justify-center bg-admin-background dark:bg-gray-900">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-admin-primary mb-4 animate-float dark:text-admin-secondary">
             Farm<span className="text-admin-secondary dark:text-white">Aid</span>
@@ -62,7 +62,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <div className="flex h-screen bg-admin-background dark:bg-gray-900">
+    <div className="flex h-full bg-admin-background dark:bg-gray-900">
       <AdminSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         {children}
