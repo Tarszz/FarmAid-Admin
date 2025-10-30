@@ -125,7 +125,7 @@ const SuperAdminSettings: React.FC = () => {
       link.click();
       URL.revokeObjectURL(url);
 
-      await logSuperAdminAction('Downloaded system backup including all collections');
+      await logSuperAdminAction('Downloaded system backup');
       toast.success('System backup downloaded successfully!');
       fetchAuditLogs();
     } catch (err) {
