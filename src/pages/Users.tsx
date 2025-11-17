@@ -64,17 +64,24 @@ const Users = () => {
 
   const { toast } = useToast();
 
-  const filteredUsers = users.filter((user: User) => {
-    const matchesSearch =
-      (user.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (user.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+  // ⭐ NEWEST FIRST SORTING + FILTERS ⭐
+  const filteredUsers = [...users]
+    .sort((a, b) => {
+      const dateA = a.dateJoined?.toMillis?.() ?? 0;
+      const dateB = b.dateJoined?.toMillis?.() ?? 0;
+      return dateB - dateA; // newest first
+    })
+    .filter((user: User) => {
+      const matchesSearch =
+        (user.firstname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (user.lastname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
 
-    const matchesType = !filterType || user.userType === filterType;
-    const matchesStatus = !filterStatus || user.status === filterStatus;
+      const matchesType = !filterType || user.userType === filterType;
+      const matchesStatus = !filterStatus || user.status === filterStatus;
 
-    return matchesSearch && matchesType && matchesStatus;
-  });
+      return matchesSearch && matchesType && matchesStatus;
+    });
 
   const handleActionClick = (user: User, action: 'view' | 'verify' | 'disable') => {
     setSelectedUser(user);
