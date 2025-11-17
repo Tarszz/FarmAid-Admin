@@ -154,7 +154,7 @@ const Users = () => {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setFilterType(null)}>All Types</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilterType('Farmer')}>Farmers</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterType('Donor')}>Donors</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterType('Household')}>Households</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilterType('Market')}>Markets</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilterType('Organization')}>Organizations</DropdownMenuItem>
             </DropdownMenuContent>

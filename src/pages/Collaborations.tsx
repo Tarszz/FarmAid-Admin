@@ -156,12 +156,7 @@ const Collaborations = () => {
             </Button>
           )}
           
-          {activeTab === 'needsAssessment' && (
-            <Button onClick={() => setIsNewAssessmentOpen(true)}>
-              <Sparkles className="h-4 w-4 mr-2" />
-              New Assessment
-            </Button>
-          )}
+          
         </div>
         
         <TabsContent value="organizations" className="space-y-4">

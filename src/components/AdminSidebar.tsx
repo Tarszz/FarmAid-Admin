@@ -45,7 +45,7 @@ const sidebarSections: SidebarSection[] = [
       { title: 'Users', path: '/users', icon: Users },
       { title: 'Transactions', path: '/transactions', icon: ShoppingCart },
       { title: 'Donations', path: '/donations', icon: HandHeart },
-      { title: 'Deliveries', path: '/deliveries', icon: Truck },
+   
       { title: 'Approvals', path: '/approvals', icon: FileCheck },
     ]
   },
@@ -55,7 +55,6 @@ const sidebarSections: SidebarSection[] = [
       { title: 'Notifications', path: '/notifications', icon: Bell },
       { title: 'Broadcasts', path: '/broadcasts', icon: Radio },
       { title: 'Messages', path: '/complaints', icon: MessageSquare },
-      { title: 'Collaborations', path: '/collaborations', icon: Users2 },
     ]
   },
   {
