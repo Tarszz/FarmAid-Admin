@@ -20,7 +20,7 @@ interface Donation {
   quantity: number;
   unit: string;
   recipientOrganization: string;
-  dateReceived: Timestamp | null;
+  timestamp: Timestamp | null;
   status: string;
 }
 
@@ -64,7 +64,7 @@ const Donations = () => {
             quantity: data.quantity || 0,
             unit: data.unit || '',
             recipientOrganization: data.organization || '',
-            dateReceived: data.dateReceived || null,
+            timestamp: data.timestamp || null,
             status: data.status || '',
           });
         }
@@ -137,7 +137,7 @@ const Donations = () => {
                   <TableCell>{donation.crop}</TableCell>
                   <TableCell>{`${donation.quantity} ${donation.unit}`}</TableCell>
                   <TableCell>{donation.recipientOrganization}</TableCell>
-                  <TableCell>{formatDate(donation.dateReceived)}</TableCell>
+                  <TableCell>{formatDate(donation.timestamp)}</TableCell>
                   <TableCell>{donation.status}</TableCell>
                 </TableRow>
               ))

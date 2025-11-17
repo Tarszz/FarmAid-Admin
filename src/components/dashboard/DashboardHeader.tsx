@@ -31,17 +31,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           
           
           <div className="flex items-center space-x-3">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative text-admin-textSecondary hover:text-admin-text"
-              onClick={onNotificationClick}
-            >
-              <Bell className="h-5 w-5" />
-              
-            </Button>
-            
-            
             <Avatar className="h-9 w-9 border border-admin-border">
               <AvatarImage src="../images/ValCity.png" alt="User" />
               <AvatarFallback className="bg-admin-secondary text-white">
