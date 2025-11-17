@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Bell, MessageSquare, Search } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import ValCityLogo from '@/images/ValCity.png';
+
 
 interface DashboardHeaderProps {
   title: string;
@@ -31,10 +33,10 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           
           
           <div className="flex items-center space-x-3">
-            <Avatar className="h-9 w-9 border border-admin-border">
-              <AvatarImage src="../images/ValCity.png" alt="User" />
+          <Avatar className="h-9 w-9 border border-admin-border">
+              <AvatarImage src={ValCityLogo} alt="User" />
               <AvatarFallback className="bg-admin-secondary text-white">
-                Vanlenzuela City Agriculture Office
+                Valenzuela City Agriculture Office
               </AvatarFallback>
             </Avatar>
           </div>
