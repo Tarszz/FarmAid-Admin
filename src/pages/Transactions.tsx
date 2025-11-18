@@ -48,7 +48,7 @@ type Transaction = {
     price: number;
   }[];
   transactionType: "Donation" | "Purchase";
-  status: "Completed" | "Pending" | "Failed";
+  status: "Completed" | "Pending" ;
   timestamp: Timestamp | null;
 };
 
@@ -232,32 +232,9 @@ const Transactions = () => {
               <DropdownMenuItem onClick={() => setFilterStatus("Pending")}>
                 Pending
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setFilterStatus("Failed")}>
-                Failed
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Filter: Seller */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <Filter className="h-4 w-4 mr-1" />
-                {filterSeller ? `Seller: ${filterSeller}` : "Seller"}
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setFilterSeller(null)}>
-                All Sellers
-              </DropdownMenuItem>
-              {sellerFilterOptions.map((name) => (
-                <DropdownMenuItem key={name} onClick={() => setFilterSeller(name)}>
-                  {name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/dashboard/PageContainer';
-import { useFirestoreQuery } from '@/hooks/useFirestoreQuery';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, onSnapshot } from 'firebase/firestore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,7 +53,8 @@ type User = {
 };
 
 const Users = () => {
-  const { data: users, loading } = useFirestoreQuery('users');
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
@@ -64,7 +64,21 @@ const Users = () => {
 
   const { toast } = useToast();
 
-  // ⭐ NEWEST FIRST SORTING + FILTERS ⭐
+  // Realtime listener
+  useEffect(() => {
+    const q = collection(db, 'users');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const updatedUsers: User[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as User),
+      }));
+      setUsers(updatedUsers);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const filteredUsers = [...users]
     .sort((a, b) => {
       const dateA = a.dateJoined?.toMillis?.() ?? 0;
