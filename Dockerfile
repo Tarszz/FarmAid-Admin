@@ -4,7 +4,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lockb ./app/
+COPY package.json bun.lockb ./
+
 # Install dependencies using bun (as indicated by bun.lockb)
 RUN npm install -g bun && \
     bun install
